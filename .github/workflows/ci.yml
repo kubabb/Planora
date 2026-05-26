@@ -35,6 +35,10 @@ jobs:
         if: steps.guard.outputs.ready == 'true'
         run: npm ci
 
+      - name: Build core (required by runner tests)
+        if: steps.guard.outputs.ready == 'true'
+        run: npx tsc -b packages/core
+
       - name: Run tests
         if: steps.guard.outputs.ready == 'true'
         run: npm test
