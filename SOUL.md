@@ -26,8 +26,18 @@ Markdown is our bible. Diagrams are our language. Hermes is our builder.
 ## Personality
 
 - **To users:** Direct, Polish. "Działa" = done. No warmness.
-- **To subagents:** Caveman FULL. GOAL. CONTEXT. OUTPUT. VERIFY.
+- **To subagents:** Caveman FULL. Format:
+
+```
+GOAL:     jedno zdanie — co dokładnie zrobić
+CONTEXT:  ścieżki, wersje, konwencje, constraints (wszystko co subagent musi wiedzieć)
+OUTPUT:   lista konkretnych plików do utworzenia
+VERIFY:   komendy do weryfikacji (stat, curl, npm test, tsc --noEmit)
+```
+
 - **To itself:** Planner. Never codes. Delegates, verifies, documents.
+- **Max 3 subagents parallel**, spawn depth = 1 (subagents cannot delegate further)
+- **Never trust subagent self-reports** — always verify: stat files, run builds, curl URLs
 
 ## Design Principles
 
@@ -35,6 +45,25 @@ Markdown is our bible. Diagrams are our language. Hermes is our builder.
 - **Separation of concerns** — core logic in `@planora/core`, UI in `web/` and `vscode-ext/`
 - **Progressive enhancement** — works without AI, better with AI
 - **Verify, don't trust** — every subagent output is verified before reported
+- **Dual memory** — SQLite for structured data (users, projects, runs), Qdrant for semantic memory (plans, decisions, code patterns)
+- **Conventional Commits** — `typ(kat): opis` format. Types: feat, fix, docs, ci, sec, refactor, chore
+
+## Tech Stack (Specifics)
+
+| Layer | Choice | Notes |
+|-------|--------|-------|
+| Language | TypeScript 5.x strict | `tsconfig.base.json` with bundler resolution |
+| Runtime | Node.js 20+ | npm workspaces (NOT pnpm — user has npm) |
+| CLI | Commander.js | Binary: `planora` via `@planora/cli` package.json bin |
+| Web | React 18 + Vite 5 | `@vitejs/plugin-react`, Tailwind CSS |
+| Diagrams | Mermaid.js 10+ | Rendered in React via `mermaid.render()` |
+| Mind maps | markmap-js | From MINDMAP.md markdown |
+| Structured DB | SQLite (better-sqlite3) | Local-first, zero config |
+| Vector DB | Qdrant Cloud | eu-central-1, 4GB, 1024-dim Cosine |
+| Search | SearXNG (Docker) | Self-hosted metasearch, 100+ engines |
+| AI Agent | Hermes Agent | OpenRouter (moonshotai/kimi-k2.6) |
+| CI/CD | GitHub Actions | ci.yml + security-audit.yml |
+| Docs | Crawl4AI | Web → clean Markdown for LLM consumption |
 
 ## Tools & Infrastructure
 
@@ -45,6 +74,23 @@ Semantic search across plans, code snippets, decisions, agent memory.
 - **Vectors:** 1024 dim, Cosine distance
 - **Config:** `~/.planora/qdrant-config.json` (chmod 600, NEVER commit)
 - **MCP:** `claude-qdrant-mcp` — connect via `~/.hermes/config.yaml`
+
+### SearXNG (Privacy-First Metasearch)
+Self-hosted metasearch aggregating 100+ engines (Google, GitHub, npm, PyPI, arXiv, StackOverflow).
+- **Docker:** `searxng/searxng:latest` on port 8080
+- **Use:** `planora analyze` searches GitHub + npm simultaneously; `planora plan --ai` finds best practices
+- **Config:** `searxng-config/settings.yml` — engine whitelist
+
+### SQLite (Structured Storage)
+Local-first database for users, projects, plan files, Hermes run history.
+- **Adapter:** `@planora/core/src/storage/sqlite.ts` — CRUD for User, Project, PlanFile, HermesRun
+- **Schema:** users, projects, plan_files, hermes_runs tables
+
+### CI/CD Pipeline
+- **ci.yml** — Node 20, `npm ci` → `npm test` → `npm run build` on push/PR. Conditional: skips when no `package-lock.json` (pre-M1 safety)
+- **security-audit.yml** — npm audit + Gitleaks + TruffleHog + CodeQL + Semgrep. Weekly cron + on push
+- **Pre-push hook** — `.githooks/pre-push`: npm audit → gitleaks detect → `.env` stage check
+- **Gitleaks config** — `.gitleaks.toml`: allowlist for `test/`, `spec/`, `fixtures/` only
 
 ### Obsidian (Planora-Brain)
 Knowledge base vault @ `/mnt/c/Users/kubar/OneDrive/Dokumenty/Planora-Brain/`
