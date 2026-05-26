@@ -407,13 +407,33 @@ function CreatorSection() {
   return (
     <section className="creator-section" id="about-us">
       <div className="creator-section__bg" />
+      <div className="creator-section__rings" aria-hidden="true" />
       <div className="creator-content reveal" data-reveal>
-        <span className="eyebrow">About us</span>
-        <h2>kubabb</h2>
-        <p>
-          Building Planora as a calm planning layer for hackathons, MVPs, and projects that
-          already have momentum.
+        <div className="creator-kicker">
+          <span className="eyebrow">About us</span>
+          <span className="creator-kicker__line" />
+        </div>
+        <h2>
+          Built by <span>kubabb</span>
+        </h2>
+        <p className="creator-lead">
+          Planora is made for teams that want to turn rough ideas, hackathon pressure, and existing
+          codebases into clear project direction without losing momentum.
         </p>
+        <div className="creator-signals" aria-label="Planora focus areas">
+          <div>
+            <strong>Hackathons</strong>
+            <span>idea to MVP roadmap</span>
+          </div>
+          <div>
+            <strong>Repos</strong>
+            <span>next steps for live projects</span>
+          </div>
+          <div>
+            <strong>Agents</strong>
+            <span>planning with editable output</span>
+          </div>
+        </div>
         <div className="creator-links">
           <a href="https://github.com/kubabb/Planora" className="creator-link">
             <GithubIcon />
