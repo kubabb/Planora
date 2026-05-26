@@ -1,7 +1,7 @@
 // PlanoraAgent — main agent loop (think → act → observe)
 // Uses AiClient for LLM calls, manages sessions and tools.
 
-import type { AiClient, AiResponse, AiToolCall } from '@planora/core';
+import type { AiClient } from '@planora/core';
 import { QdrantMemory } from '@planora/core';
 import { AgentSession } from './session.js';
 import type { AgentConfig } from './config.js';

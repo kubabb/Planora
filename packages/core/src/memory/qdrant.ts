@@ -82,19 +82,13 @@ export class QdrantMemory {
 
   // Get embedding for text using AI client or simple fallback
   private async embed(text: string): Promise<number[] | null> {
+    // If no AI client, use deterministic hash
     if (!this.aiClient) return this.simpleHash(text, 256);
 
-    try {
-      // Try AI embeddings first
-      const response = await this.aiClient.generate(
-        [{ role: 'user', content: text }],
-        { maxTokens: 1 },
-      );
-      // Use completion tokens as a pseudo-embedding dimension indicator + hash combination
-      return this.simpleHash(text, 256);
-    } catch {
-      return this.simpleHash(text, 256);
-    }
+    // With AI client: use hash-based embedding for now
+    // (proper embedding models require separate API calls which most
+    //  OpenRouter keys don't support. Hash gives stable pseudo-semantics.)
+    return this.simpleHash(text, 256);
   }
 
   // Simple deterministic hash-based pseudo-embedding (fallback when no embedding model)

@@ -3,6 +3,7 @@
 import Database from 'better-sqlite3';
 import type { StorageAdapter } from './adapter.js';
 import * as path from 'node:path';
+import * as fs from 'node:fs';
 import * as os from 'node:os';
 
 const DB_PATH = path.join(os.homedir(), '.planora', 'planora.db');
@@ -13,8 +14,8 @@ export class SqliteStorage implements StorageAdapter {
   constructor(dbPath?: string) {
     const p = dbPath || DB_PATH;
     const dir = path.dirname(p);
-    // Ensure directory exists
-    import('node:fs').then((fs) => fs.mkdirSync(dir, { recursive: true }));
+    // Ensure directory exists (synchronous, no await needed)
+    fs.mkdirSync(dir, { recursive: true });
     this.db = new Database(p);
     this.db.pragma('journal_mode = WAL');
     this.init();

@@ -10,8 +10,6 @@ import {
   validateAndTest,
   getConfigPath,
 } from '@planora/core';
-import { createAiClient } from '@planora/core';
-import type { PlanoraConfig } from '@planora/core';
 
 export const configCommand = new Command('config')
   .description('Configure Planora AI provider')
