@@ -11,7 +11,7 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    if: hashFiles('package-lock.json') != ''
+    if: ${{ hashFiles('package-lock.json') != '' }}
 
     steps:
       - name: Checkout repo
@@ -34,7 +34,7 @@ jobs:
 
   skeleton-check:
     runs-on: ubuntu-latest
-    if: hashFiles('package-lock.json') == ''
+    if: ${{ hashFiles('package-lock.json') == '' }}
     steps:
       - name: Monorepo skeleton not yet initialized
         run: |
