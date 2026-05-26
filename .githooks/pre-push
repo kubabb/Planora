@@ -1,0 +1,42 @@
+#!/bin/bash
+# Planora — pre-push security gate
+# Block push if leaks or vulns found
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+echo "🔒 Security gate — pre-push..."
+
+# 1 — Dependency audit
+echo "→ npm audit..."
+if [ -f package.json ]; then
+  npm audit --audit-level=high 2>&1 || {
+    echo -e "${RED}✗ npm audit failed — fix vulns before push${NC}"
+    exit 1
+  }
+fi
+echo -e "${GREEN}✓ dependencies ok${NC}"
+
+# 2 — Secret scan (gitleaks if installed)
+if command -v gitleaks &>/dev/null; then
+  echo "→ gitleaks detect..."
+  gitleaks detect --source=. --no-git -v 2>&1 || {
+    echo -e "${RED}✗ secrets found — remove before push${NC}"
+    exit 1
+  }
+  echo -e "${GREEN}✓ no secrets leaked${NC}"
+else
+  echo "→ gitleaks not installed (skip, install: brew install gitleaks)"
+fi
+
+# 3 — Env file check
+echo "→ .env check..."
+git diff --cached --name-only | grep -q '\.env$' 2>/dev/null && {
+  echo -e "${RED}✗ .env file staged — never commit secrets${NC}"
+  exit 1
+} || echo -e "${GREEN}✓ no .env staged${NC}"
+
+echo -e "${GREEN}🔒 Security gate passed — pushing${NC}"
