@@ -1,10 +1,18 @@
 // planora plan — generate project plans
 
 import { Command } from 'commander';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import {
   loadConfig,
   getActiveProvider,
   createAiClient,
+  projectPlanGenerator,
+  roadmapGenerator,
+  mindmapGenerator,
+  architectureGenerator,
+  agentSetupGenerator,
+  planoraJsonGenerator,
 } from '@planora/core';
 import { PlanoraAgent, plannerSystemPrompt } from '@planora/runner';
 
@@ -18,24 +26,60 @@ export const planCommand = new Command('plan')
   .action(async (options) => {
     const name = options.name || 'my-project';
     const description = options.description || 'A new project';
-    const stack = options.stack
-      ? options.stack.split(',').map((s: string) => s.trim())
-      : ['TypeScript', 'Node.js'];
+    const stack = options.stack || 'TypeScript, Node.js';
     const outputDir = options.output || '.';
 
     if (options.ai) {
       await generateWithAi(name, description, stack, outputDir);
     } else {
-      console.log('\n📝 Generowanie planu z szablonów (bez AI)...');
-      console.log('   (static templates — not yet implemented)\n');
-      console.log('   Użyj --ai aby wygenerować plan z AI: planora plan --ai\n');
+      await generateStatic(name, description, stack, outputDir);
     }
   });
+
+async function generateStatic(
+  name: string,
+  description: string,
+  stack: string,
+  outputDir: string,
+): Promise<void> {
+  console.log(`\n📝 Generowanie planu dla "${name}" (szablony statyczne)...\n`);
+
+  const projectId = crypto.randomUUID();
+  const projectDir = path.join(outputDir, name);
+  fs.mkdirSync(projectDir, { recursive: true });
+
+  const files: [string, string][] = [
+    ['PROJECT_PLAN.md', projectPlanGenerator.generate({ projectName: name, description, stack })],
+    ['ROADMAP.md', roadmapGenerator.generate({ projectName: name })],
+    ['MINDMAP.md', mindmapGenerator.generate({ projectName: name, description, stack })],
+    ['ARCHITECTURE.md', architectureGenerator.generate({ projectName: name, description, stack })],
+    ['AGENT_SETUP.md', agentSetupGenerator.generate({ projectName: name, provider: 'not configured', model: 'not configured' })],
+  ];
+
+  for (const [filename, content] of files) {
+    const filepath = path.join(projectDir, filename);
+    fs.writeFileSync(filepath, content, 'utf-8');
+    console.log(`  ✓ ${filename}`);
+  }
+
+  // planora.json
+  const planoraJson = planoraJsonGenerator.generate({
+    projectId,
+    projectName: name,
+    stack,
+    files: files.map(([f]) => f),
+  });
+  fs.writeFileSync(path.join(projectDir, 'planora.json'), planoraJson, 'utf-8');
+  console.log(`  ✓ planora.json`);
+
+  console.log(`\n✓ Plan wygenerowany w: ${projectDir}/\n`);
+  console.log(`  Użyj --ai aby wygenerować inteligentny plan z AI:\n  planora plan -n "${name}" --ai\n`);
+}
 
 async function generateWithAi(
   name: string,
   description: string,
-  stack: string[],
+  stack: string,
   outputDir: string,
 ): Promise<void> {
   const config = loadConfig();
@@ -49,13 +93,12 @@ async function generateWithAi(
 
   console.log(`\n🤖 Planora Agent — generowanie planu dla "${name}"\n`);
   console.log(`  Provider: ${provider.model}`);
-  console.log(`  Stack:    ${stack.join(', ')}`);
   console.log(`  Output:   ${outputDir}\n`);
   console.log('⏳ Agent pracuje...\n');
 
   try {
     const client = createAiClient({
-      provider: 'openrouter', // auto-detected
+      provider: 'openrouter',
       apiKey: provider.apiKey,
       model: provider.model,
       baseUrl: provider.baseUrl,
@@ -65,31 +108,23 @@ async function generateWithAi(
 
     const agent = new PlanoraAgent(client);
     const result = await agent.plan(
-      {
-        projectName: name,
-        projectDescription: description,
-        stack,
-        outputDir,
-      },
+      { projectName: name, projectDescription: description, stack: stack.split(',').map((s) => s.trim()), outputDir },
       plannerSystemPrompt('pl'),
     );
 
     if (result.status === 'success') {
       console.log('✓ Plan wygenerowany!\n');
-      console.log(`  Kroki:    ${result.stepsUsed}`);
-      console.log(`  Tokeny:   ${result.tokensUsed}`);
-      console.log(`  Run ID:   ${result.runId}`);
+      console.log(`  Kroki:  ${result.stepsUsed}`);
+      console.log(`  Tokeny: ${result.tokensUsed}`);
       if (result.files.length > 0) {
         console.log(`  Pliki:`);
-        for (const f of result.files) {
-          console.log(`    - ${f}`);
-        }
+        for (const f of result.files) console.log(`    - ${f}`);
       }
       console.log('');
     } else {
       console.log(`❌ Błąd: ${result.error}\n`);
     }
   } catch (error) {
-    console.log(`❌ Błąd połączenia z AI: ${error instanceof Error ? error.message : String(error)}\n`);
+    console.log(`❌ Błąd: ${error instanceof Error ? error.message : String(error)}\n`);
   }
 }
