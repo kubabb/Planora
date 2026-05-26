@@ -315,7 +315,7 @@ export function App() {
           <div className="hero-content reveal is-visible" data-reveal>
             <div className="hero-orbit-label">Scroll to descend</div>
             <h1>
-              <span>We</span>
+              <span>We </span>
               <span className="hero-word-frame">
                 <span className="hero-word-slot" key={activeWord}>
                   {activeWord}.

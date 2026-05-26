@@ -186,6 +186,8 @@ select {
 
 .hero-content h1 {
   position: relative;
+  display: block;
+  justify-self: stretch;
   margin: 0;
   font-size: clamp(4.4rem, 10vw, 7.6rem);
   font-weight: 500;
@@ -194,14 +196,6 @@ select {
   letter-spacing: 0;
   text-align: center;
   text-shadow: 0 0 24px rgba(255, 255, 255, 0.04);
-}
-
-.hero-headline {
-  display: inline;
-}
-
-.hero-headline__lead {
-  display: inline;
 }
 
 .hero-orbit-label {
