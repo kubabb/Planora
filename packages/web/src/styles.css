@@ -177,6 +177,7 @@ select {
   z-index: 1;
   display: grid;
   justify-items: center;
+  justify-self: stretch;
   align-content: center;
   width: min(100%, 62rem);
   margin-top: -4vh;

@@ -104,13 +104,51 @@ function useTerminalPlayback(script: TerminalEntry[]) {
   return { history, activeCommand };
 }
 
-function NavLink({ label, active = false }: { label: string; active?: boolean }) {
-  const href = active ? '#home' : `#${label.toLowerCase().replace(/\s+/g, '-')}`;
+function usePathname() {
+  const [pathname, setPathname] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const onPopState = () => setPathname(window.location.pathname);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const navigate = (nextPath: string) => {
+    if (window.location.pathname === nextPath) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    window.history.pushState({}, '', nextPath);
+    setPathname(nextPath);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  return { pathname, navigate };
+}
+
+function NavLink({
+  label,
+  href,
+  active = false,
+  onNavigate,
+}: {
+  label: string;
+  href: string;
+  active?: boolean;
+  onNavigate?: (href: string) => void;
+}) {
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!onNavigate) return;
+    event.preventDefault();
+    onNavigate(href);
+  };
 
   return (
     <a
       className={`nav-link${active ? ' nav-link-active' : ''}`}
       href={href}
+      onClick={handleClick}
     >
       {label}
     </a>
@@ -199,6 +237,154 @@ function TerminalSection() {
   );
 }
 
+function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) => void }) {
+  const sections = [
+    {
+      id: 'overview',
+      title: 'Overview',
+      body:
+        'Planora is a markdown-first planning system for software teams. It turns project context into structured plans, mind maps, architecture diagrams, and a local dashboard without making Hermes a product dependency.',
+    },
+    {
+      id: 'workflow',
+      title: 'User flow',
+      body:
+        'The first-run path is intentionally short: configure a provider, initialize a workspace, generate the plan pack, then review everything locally in the web app or in VS Code.',
+      code: ['planora config', 'planora init', 'planora plan --ai', 'planora web'],
+    },
+    {
+      id: 'generated-files',
+      title: 'Generated files',
+      body:
+        'Markdown is the source of truth. Every generated artifact is git-friendly, readable in plain text, and available to the CLI, the extension, and the local web interface.',
+      items: [
+        ['PROJECT_PLAN.md', 'overview, goals, MVP, stack, milestones'],
+        ['ROADMAP.md', 'phased delivery plan and sequencing'],
+        ['MINDMAP.md', 'hierarchical outline for markmap rendering'],
+        ['ARCHITECTURE.md', 'Mermaid-based system and data-flow diagrams'],
+        ['AGENT_SETUP.md', 'provider, model, and workflow notes'],
+        ['planora.json', 'project metadata and machine-readable settings'],
+      ],
+    },
+    {
+      id: 'architecture',
+      title: 'Architecture',
+      body:
+        'The monorepo is split into shared core logic, execution surfaces, and an agent runtime. The current direction centers on Planora’s own agent with OpenRouter, OpenAI, Ollama, and compatible providers.',
+      code: [
+        'packages/core      models, generators, storage, AI client',
+        'packages/cli       init, plan, config, web, agent commands',
+        'packages/web       React + Vite dashboard on localhost:4173',
+        'packages/runner    Planora agent runtime and workflows',
+        'packages/vscode-ext editor integration and command surface',
+      ],
+    },
+    {
+      id: 'agent',
+      title: 'Own agent direction',
+      body:
+        'The agent runtime is responsible for prompts, sessions, tool calls, and workflow execution. Users provide only the API key, provider, and model; Planora handles the rest of the conversation loop.',
+      items: [
+        ['Providers', 'OpenRouter recommended, plus OpenAI, Ollama, OpenCode, custom'],
+        ['Config', '~/.planora/config.json stored locally'],
+        ['Workflows', 'plan, code, review'],
+        ['Tools', 'file read/write, shell, web search, fetch'],
+      ],
+    },
+    {
+      id: 'implementation-plan',
+      title: 'Implementation plan',
+      body:
+        'The current build path is already laid out in the project plans. The practical order is to finish the AI client and config system first, then complete generators, agent workflows, CLI, web views, and finally optional Hermes orchestration.',
+      items: [
+        ['M2', 'finish core AI client, config loading, validation, tests'],
+        ['M3', 'complete markdown generators and output shaping'],
+        ['M4', 'expand web dashboard, project views, map and diagram rendering'],
+        ['M5', 'finish CLI flows and Planora agent runtime'],
+        ['M6', 'ship VS Code extension experience'],
+        ['M7', 'add Hermes as an optional advanced orchestrator'],
+      ],
+    },
+  ];
+
+  return (
+    <div className="docs-page">
+      <section className="docs-sections" id="docs-sections">
+        <div className="docs-layout">
+          <aside className="docs-sidebar docs-sidebar-left reveal is-visible" data-reveal>
+            <div className="docs-sidebar__brand">
+              <span className="eyebrow">Planora</span>
+              <p>Standalone planning docs for the actual product direction.</p>
+            </div>
+            <nav className="docs-sidebar__nav" aria-label="Documentation sections">
+              {sections.map((section) => (
+                <a key={section.id} href={`#${section.id}`}>
+                  {section.title}
+                </a>
+              ))}
+            </nav>
+            <a
+              href="/"
+              className="docs-sidebar__back"
+              onClick={(event) => {
+                event.preventDefault();
+                onNavigateHome('/');
+              }}
+            >
+              Back home
+            </a>
+          </aside>
+          <div className="docs-content">
+            <article className="docs-intro reveal is-visible" data-reveal>
+              <span className="eyebrow">Documentation</span>
+              <h1>Planora documentation</h1>
+              <p>
+                Planora is a markdown-first planning tool for new builds and existing repositories.
+                It runs with its own agent, takes a provider key such as OpenRouter, and generates
+                readable project artifacts locally.
+              </p>
+            </article>
+            {sections.map((section) => (
+              <article key={section.id} id={section.id} className="docs-article reveal" data-reveal>
+                <span className="eyebrow">{section.title}</span>
+                <h2>{section.title}</h2>
+                <p>{section.body}</p>
+                {'code' in section && section.code ? (
+                  <div className="docs-code-block">
+                    {section.code.map((line) => (
+                      <div key={line}>{line}</div>
+                    ))}
+                  </div>
+                ) : null}
+                {'items' in section && section.items ? (
+                  <div className="docs-definition-list">
+                    {section.items.map(([term, description]) => (
+                      <div key={term} className="docs-definition-row">
+                        <strong>{term}</strong>
+                        <span>{description}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </article>
+            ))}
+          </div>
+          <aside className="docs-sidebar docs-sidebar-right reveal is-visible" data-reveal>
+            <span className="eyebrow">On this page</span>
+            <nav className="docs-sidebar__nav docs-sidebar__nav-quiet" aria-label="Table of contents">
+              {sections.map((section) => (
+                <a key={section.id} href={`#${section.id}`}>
+                  {section.title}
+                </a>
+              ))}
+            </nav>
+          </aside>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function CreatorSection() {
   return (
     <section className="creator-section" id="pricing">
@@ -277,6 +463,8 @@ function FeatureCard({
 export function App() {
   const activeWord = useWordCycle(heroWords, 2200);
   const footerLinks = useMemo(() => ['Privacy', 'Terms', 'GitHub', 'Status'], []);
+  const { pathname, navigate } = usePathname();
+  const isDocumentationPage = pathname === '/documentation';
 
   useEffect(() => {
     const elements = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
@@ -294,20 +482,29 @@ export function App() {
     for (const element of elements) observer.observe(element);
 
     return () => observer.disconnect();
-  }, []);
+  }, [isDocumentationPage]);
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <nav className="topbar__nav" aria-label="Primary">
-          <NavLink label="Home" active />
-          <NavLink label="Documentation" />
-          <NavLink label="Pricing" />
-          <NavLink label="Blog" />
+          <NavLink label="Home" href="/" active={!isDocumentationPage} onNavigate={navigate} />
+          <NavLink
+            label="Documentation"
+            href="/documentation"
+            active={isDocumentationPage}
+            onNavigate={navigate}
+          />
+          <NavLink label="Pricing" href={isDocumentationPage ? '/#pricing' : '#pricing'} />
+          <NavLink label="Blog" href={isDocumentationPage ? '/#blog' : '#blog'} />
         </nav>
       </header>
 
       <main>
+        {isDocumentationPage ? (
+          <DocumentationPage onNavigateHome={navigate} />
+        ) : (
+          <>
         <section className="hero-section" id="home">
           <div className="hero-section__bg" />
           <div className="hero-section__noise" />
@@ -331,33 +528,35 @@ export function App() {
         <section className="features-section">
           <div className="features-grid">
             <FeatureCard
-              eyebrow="Precision"
-              title="Zero-latency observability"
-              body="Track every deployment with sub-millisecond precision across your edge control plane."
+              eyebrow="Hackathons"
+              title="Plan fast for hackathons"
+              body="Turn a rough idea into an MVP outline, task split, architecture sketch, and delivery roadmap before the timer starts."
               large
               visual="grid"
             />
             <FeatureCard
-              eyebrow="Security"
-              title="Encrypted by default"
-              body="Military-grade key rotation and zero-trust access for every container in the void."
+              eyebrow="Existing Repos"
+              title="Grow projects that already exist"
+              body="Analyze a current codebase, identify the next milestones, and shape a roadmap without starting from a blank page."
             />
             <FeatureCard
-              eyebrow="CLI"
-              title="CLI First"
-              body="Powerful terminal tools that integrate seamlessly with your existing workflow."
+              eyebrow="Markdown"
+              title="Markdown stays in control"
+              body="Plans, mind maps, and diagrams live in normal files, so your team can review, version, and edit everything directly."
               icon=">"
             />
             <FeatureCard
-              eyebrow="Orchestration"
-              title="Global Scale Control"
-              body="Deploy globally in seconds. Autonomous balancing handles the peaks so your team can stay focused."
+              eyebrow="Workflow"
+              title="Move from idea to implementation"
+              body="Use Planora to shape scope, break work into stages, and keep development aligned as the project evolves."
               large
               accent
               visual="chip"
             />
           </div>
         </section>
+          </>
+        )}
       </main>
 
       <footer className="footer" id="blog">
