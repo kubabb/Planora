@@ -86,9 +86,21 @@ User → Planner (me) → delegates to:
 Planora-Brain @ `/mnt/c/Users/kubar/OneDrive/Dokumenty/Planora-Brain/`
 - Skills index, MCP servers, agents catalog, protocols
 
+## Tools & Infrastructure
+
+| Tool | Purpose | Config |
+|------|---------|--------|
+| **Qdrant Cloud** | Vector semantic memory (4 collections, 1024d/Cosine) | `~/.planora/qdrant-config.json` (0600) |
+| **Obsidian** | Knowledge base (Planora-Brain vault) | `/mnt/c/Users/kubar/OneDrive/Dokumenty/Planora-Brain/` |
+| **Skills** | Agent capabilities via `npx skills add` | skills.sh, supabase, caveman, scientific |
+| **MCP** | Extended tools (Context7, Memory, Git, Filesystem) | `~/.hermes/config.yaml` |
+| **Crawl4AI** | Web → Markdown crawler | `pip install -U crawl4ai` |
+| **Context7** | Library documentation lookup | Integrated: `mcp_context7_docs_*` |
+
 ## Before coding
 
 1. Read relevant plan from `plans/`
 2. Load skills from Planora-Brain `skills/INDEX.md`
 3. Use Context7 MCP for library docs
-4. Caveman FULL for all subagent comms
+4. Check Qdrant for similar past solutions
+5. Caveman FULL for all subagent comms
