@@ -1,0 +1,15 @@
+# Gitleaks config for Planora
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+
+title = "Planora Gitleaks Config"
+
+[allowlist]
+  description = "Allowed exceptions"
+
+  # Example: allow test secrets
+  paths = [
+    '''test/''',
+    '''spec/''',
+    '''fixtures/''',
+    '''.github/''',
+  ]
