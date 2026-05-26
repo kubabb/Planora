@@ -6,8 +6,9 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "dev": "vite",
+    "build": "tsc --noEmit && vite build .",
+    "dev": "vite . --host 127.0.0.1 --port 4173",
+    "preview": "vite preview . --host 127.0.0.1 --port 4173",
     "typecheck": "tsc --noEmit"
   },
   "exports": {
@@ -20,7 +21,6 @@
   "devDependencies": {
     "typescript": "^5.4",
     "vite": "^5",
-    "@vitejs/plugin-react": "^4",
     "@types/react": "^18",
     "@types/react-dom": "^18"
   }
