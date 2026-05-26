@@ -16,6 +16,7 @@ import {
   SqliteStorage,
 } from '@planora/core';
 import { PlanoraAgent, plannerSystemPrompt } from '@planora/runner';
+import { saveRun, displayResult } from './helpers.js';
 
 export const planCommand = new Command('plan')
   .description('Generate project plan files')
@@ -58,12 +59,7 @@ async function generateStatic(
       const storage = new SqliteStorage();
       storage.createUser({ id: 'local', name: 'local', profile: 'local' });
       storage.createProject({
-        id: projectId,
-        name,
-        description,
-        userId: 'local',
-        stack,
-        basePath: projectDir,
+        id: projectId, name, description, userId: 'local', stack, basePath: projectDir,
       });
       storage.close();
     } catch { /* optional */ }
@@ -78,21 +74,15 @@ async function generateStatic(
   ];
 
   for (const [filename, content] of files) {
-    const filepath = path.join(projectDir, filename);
-    fs.writeFileSync(filepath, content, 'utf-8');
+    fs.writeFileSync(path.join(projectDir, filename), content, 'utf-8');
     console.log(`  ✓ ${filename}`);
   }
 
-  // planora.json
   const planoraJson = planoraJsonGenerator.generate({
-    projectId,
-    projectName: name,
-    stack,
-    files: files.map(([f]) => f),
+    projectId, projectName: name, stack, files: files.map(([f]) => f),
   });
   fs.writeFileSync(path.join(projectDir, 'planora.json'), planoraJson, 'utf-8');
   console.log(`  ✓ planora.json`);
-
   console.log(`\n✓ Plan wygenerowany w: ${projectDir}/\n`);
   console.log(`  Użyj --ai aby wygenerować inteligentny plan z AI:\n  planora plan -n "${name}" --ai\n`);
 }
@@ -107,77 +97,36 @@ async function generateWithAi(
   const provider = getActiveProvider(config);
 
   if (!provider) {
-    console.log('\n❌ AI agent nie jest skonfigurowany.');
-    console.log('   Uruchom najpierw: planora config\n');
+    console.log('\n❌ AI agent nie jest skonfigurowany.\n   Uruchom najpierw: planora config\n');
     return;
   }
 
-  console.log(`\n🤖 Planora Agent — generowanie planu dla "${name}"\n`);
-  console.log(`  Provider: ${provider.model}`);
-  console.log(`  Output:   ${outputDir}\n`);
-  console.log('⏳ Agent pracuje...\n');
+  console.log(`\n🤖 Planora Agent — "${name}"\n  Model: ${provider.model}\n  Output: ${outputDir}\n⏳ Agent pracuje...\n`);
 
   try {
     const client = createAiClient({
-      provider: 'openrouter',
-      apiKey: provider.apiKey,
-      model: provider.model,
-      baseUrl: provider.baseUrl,
-      temperature: provider.temperature,
-      maxTokens: provider.maxTokens,
+      provider: Object.keys(config.providers)[0] as 'openrouter',
+      apiKey: provider.apiKey, model: provider.model, baseUrl: provider.baseUrl,
+      temperature: provider.temperature, maxTokens: provider.maxTokens,
     });
 
     const agent = new PlanoraAgent(client);
     const result = await agent.plan(
-      { projectName: name, projectDescription: description, stack: stack.split(',').map((s) => s.trim()), outputDir },
+      { projectName: name, projectDescription: description, stack: stack.split(',').map(s => s.trim()), outputDir },
       plannerSystemPrompt('pl'),
     );
 
-    if (result.status === 'success') {
-      // Save run to SQLite
-      try {
-        const storage = new SqliteStorage();
-        storage.createRun({
-          id: result.runId,
-          projectId: name,
-          workflow: 'plan',
-          status: result.status,
-          output: result.output.slice(0, 500),
-          stepsUsed: result.stepsUsed,
-          tokensUsed: result.tokensUsed,
-          startedAt: new Date().toISOString(),
-          finishedAt: new Date().toISOString(),
-        });
-        storage.close();
-      } catch { /* SQLite optional */ }
+    saveRun(result, name, 'plan');
 
+    if (result.status === 'success') {
       console.log('✓ Plan wygenerowany!\n');
-      console.log(`  Kroki:  ${result.stepsUsed}`);
-      console.log(`  Tokeny: ${result.tokensUsed}`);
+      console.log(`  Kroki:  ${result.stepsUsed}\n  Tokeny: ${result.tokensUsed}`);
       if (result.files.length > 0) {
         console.log(`  Pliki:`);
         for (const f of result.files) console.log(`    - ${f}`);
       }
       console.log('');
     } else {
-      // Save failed run
-      try {
-        const storage = new SqliteStorage();
-        storage.createRun({
-          id: result.runId,
-          projectId: name,
-          workflow: 'plan',
-          status: 'failed',
-          output: '',
-          stepsUsed: result.stepsUsed,
-          tokensUsed: result.tokensUsed,
-          startedAt: new Date().toISOString(),
-          finishedAt: new Date().toISOString(),
-          error: result.error || 'unknown',
-        });
-        storage.close();
-      } catch { /* SQLite optional */ }
-
       console.log(`❌ Błąd: ${result.error}\n`);
     }
   } catch (error) {
