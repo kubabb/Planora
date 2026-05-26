@@ -105,10 +105,12 @@ function useTerminalPlayback(script: TerminalEntry[]) {
 }
 
 function NavLink({ label, active = false }: { label: string; active?: boolean }) {
+  const href = active ? '#home' : `#${label.toLowerCase().replace(/\s+/g, '-')}`;
+
   return (
     <a
       className={`nav-link${active ? ' nav-link-active' : ''}`}
-      href="#"
+      href={href}
     >
       {label}
     </a>
@@ -162,9 +164,9 @@ function TerminalSection() {
   const { history, activeCommand } = useTerminalPlayback(terminalScript);
 
   return (
-    <section className="terminal-section" id="terminal">
+    <section className="terminal-section" id="documentation">
       <div className="terminal-section__bg" />
-      <div className="terminal-shell glass-panel">
+      <div className="terminal-shell glass-panel reveal" data-reveal>
         <div className="terminal-shell__header">
           <StatusDots />
           <span className="terminal-shell__title">PLANORA_CLI_V1.0.4</span>
@@ -177,7 +179,11 @@ function TerminalSection() {
                 key={`${entry.kind}-${entry.text}-${index}`}
                 className={`terminal-line terminal-line-${entry.kind} terminal-line-tone-${entry.tone ?? 'soft'}`}
               >
-                {entry.kind === 'command' ? <span className="terminal-prompt">$</span> : <span className="terminal-arrow">↳</span>}
+                {entry.kind === 'command' ? (
+                  <span className="terminal-prompt">$</span>
+                ) : (
+                  <span className="terminal-arrow">&gt;</span>
+                )}
                 <span>{entry.text}</span>
               </div>
             ))}
@@ -195,9 +201,9 @@ function TerminalSection() {
 
 function CreatorSection() {
   return (
-    <section className="creator-section">
+    <section className="creator-section" id="pricing">
       <div className="creator-section__bg" />
-      <div className="creator-content">
+      <div className="creator-content reveal" data-reveal>
         <span className="eyebrow">Created by</span>
         <h2>kubabb</h2>
         <p>Architecting the next generation of developer tools for the void.</p>
@@ -239,6 +245,7 @@ function FeatureCard({
 }) {
   const classes = [
     'feature-card',
+    'reveal',
     large ? 'feature-card-large' : '',
     accent ? 'feature-card-accent' : '',
   ]
@@ -246,7 +253,7 @@ function FeatureCard({
     .join(' ');
 
   return (
-    <article className={classes}>
+    <article className={classes} data-reveal>
       <div className="feature-card__copy">
         <span className="eyebrow">{eyebrow}</span>
         <h3>{title}</h3>
@@ -271,6 +278,24 @@ export function App() {
   const activeWord = useWordCycle(heroWords, 2200);
   const footerLinks = useMemo(() => ['Privacy', 'Terms', 'GitHub', 'Status'], []);
 
+  useEffect(() => {
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        }
+      },
+      { threshold: 0.18, rootMargin: '0px 0px -10% 0px' },
+    );
+
+    for (const element of elements) observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -283,10 +308,10 @@ export function App() {
       </header>
 
       <main>
-        <section className="hero-section">
+        <section className="hero-section" id="home">
           <div className="hero-section__bg" />
           <div className="hero-section__noise" />
-          <div className="hero-content">
+          <div className="hero-content reveal is-visible" data-reveal>
             <h1>
               <span>We</span>
               <span className="hero-word-slot" key={activeWord}>
@@ -317,7 +342,7 @@ export function App() {
               eyebrow="CLI"
               title="CLI First"
               body="Powerful terminal tools that integrate seamlessly with your existing workflow."
-              icon="⌘"
+              icon=">"
             />
             <FeatureCard
               eyebrow="Orchestration"
@@ -331,12 +356,12 @@ export function App() {
         </section>
       </main>
 
-      <footer className="footer">
+      <footer className="footer" id="blog">
         <div className="footer__brand">
-          <div className="footer__mark">◈</div>
+          <div className="footer__mark">*</div>
           <div>
             <strong>Planora Systems</strong>
-            <p>© 2024 Planora Systems. Engineered for the void.</p>
+            <p>2024 Planora Systems. Engineered for the void.</p>
           </div>
         </div>
         <div className="footer__links">
