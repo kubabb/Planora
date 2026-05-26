@@ -47,7 +47,27 @@ async function generateStatic(
 
   const projectId = crypto.randomUUID();
   const projectDir = path.join(outputDir, name);
-  fs.mkdirSync(projectDir, { recursive: true });
+
+  // Auto-init if directory doesn't exist
+  if (!fs.existsSync(projectDir)) {
+    fs.mkdirSync(projectDir, { recursive: true });
+    fs.mkdirSync(path.join(projectDir, '.planora'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, '.gitignore'), '.planora/\nnode_modules/\ndist/\n.env\n', 'utf-8');
+
+    try {
+      const storage = new SqliteStorage();
+      storage.createUser({ id: 'local', name: 'local', profile: 'local' });
+      storage.createProject({
+        id: projectId,
+        name,
+        description,
+        userId: 'local',
+        stack,
+        basePath: projectDir,
+      });
+      storage.close();
+    } catch { /* optional */ }
+  }
 
   const files: [string, string][] = [
     ['PROJECT_PLAN.md', projectPlanGenerator.generate({ projectName: name, description, stack })],

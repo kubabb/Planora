@@ -184,6 +184,10 @@ const shellTool: AgentToolDef = {
   },
 };
 
+// ─── web_search ──────────────────────────────────────
+
+import { webSearchTool } from './web-search.js';
+
 // ─── registry ─────────────────────────────────────────
 
 export const ALL_TOOLS: AgentToolDef[] = [
@@ -192,6 +196,7 @@ export const ALL_TOOLS: AgentToolDef[] = [
   fileListTool,
   searchTool,
   shellTool,
+  webSearchTool,
 ];
 
 export function getToolSchemas(): AiTool[] {
