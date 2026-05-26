@@ -6,8 +6,6 @@ type TerminalEntry = {
   tone?: 'soft' | 'bright' | 'cyan';
 };
 
-const heroWords = ['plan', 'launch', 'debug', 'ship'];
-
 const terminalScript: TerminalEntry[] = [
   { kind: 'command', text: 'npm install -g planora' },
   { kind: 'response', text: '+ planora installed', tone: 'soft' },
@@ -25,20 +23,6 @@ const terminalScript: TerminalEntry[] = [
   { kind: 'command', text: 'planora web' },
   { kind: 'response', text: 'dashboard running at http://localhost:4173', tone: 'cyan' },
 ];
-
-function useWordCycle(words: string[], delayMs: number): string {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const handle = window.setInterval(() => {
-      setIndex((current) => (current + 1) % words.length);
-    }, delayMs);
-
-    return () => window.clearInterval(handle);
-  }, [delayMs, words.length]);
-
-  return words[index]!;
-}
 
 function useTerminalPlayback(script: TerminalEntry[]) {
   const [history, setHistory] = useState<TerminalEntry[]>([]);
@@ -387,12 +371,15 @@ function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) 
 
 function CreatorSection() {
   return (
-    <section className="creator-section" id="pricing">
+    <section className="creator-section" id="about-us">
       <div className="creator-section__bg" />
       <div className="creator-content reveal" data-reveal>
-        <span className="eyebrow">Created by</span>
+        <span className="eyebrow">About us</span>
         <h2>kubabb</h2>
-        <p>Architecting the next generation of developer tools for the void.</p>
+        <p>
+          Building Planora as a calm planning layer for hackathons, MVPs, and projects that
+          already have momentum.
+        </p>
         <div className="creator-links">
           <a href="https://github.com/kubabb/Planora" className="creator-link">
             <GithubIcon />
@@ -461,7 +448,6 @@ function FeatureCard({
 }
 
 export function App() {
-  const activeWord = useWordCycle(heroWords, 2200);
   const footerLinks = useMemo(() => ['Privacy', 'Terms', 'GitHub', 'Status'], []);
   const { pathname, navigate } = usePathname();
   const isDocumentationPage = pathname === '/documentation';
@@ -495,7 +481,7 @@ export function App() {
             active={isDocumentationPage}
             onNavigate={navigate}
           />
-          <NavLink label="Pricing" href={isDocumentationPage ? '/#pricing' : '#pricing'} />
+          <NavLink label="About us" href={isDocumentationPage ? '/#about-us' : '#about-us'} />
           <NavLink label="Blog" href={isDocumentationPage ? '/#blog' : '#blog'} />
         </nav>
       </header>
@@ -510,15 +496,8 @@ export function App() {
           <div className="hero-section__noise" />
           <div className="hero-section__grid" />
           <div className="hero-content reveal is-visible" data-reveal>
-            <div className="hero-orbit-label">Scroll to descend</div>
-            <h1>
-              <span>We </span>
-              <span className="hero-word-frame">
-                <span className="hero-word-slot" key={activeWord}>
-                  {activeWord}.
-                </span>
-              </span>
-            </h1>
+            <span className="hero-orbit-label">Plan slowly. Ship clearly.</span>
+            <h1>Planora.</h1>
           </div>
         </section>
 
@@ -529,26 +508,26 @@ export function App() {
           <div className="features-grid">
             <FeatureCard
               eyebrow="Hackathons"
-              title="Plan fast for hackathons"
-              body="Turn a rough idea into an MVP outline, task split, architecture sketch, and delivery roadmap before the timer starts."
+              title="Hackathon plans in minutes"
+              body="Turn a raw idea into an MVP scope, task split, architecture sketch, and judging-ready roadmap before the build sprint gets loud."
               large
               visual="grid"
             />
             <FeatureCard
-              eyebrow="Existing Repos"
-              title="Grow projects that already exist"
-              body="Analyze a current codebase, identify the next milestones, and shape a roadmap without starting from a blank page."
+              eyebrow="Existing projects"
+              title="Develop what is already alive"
+              body="Map the current codebase, find realistic next milestones, and plan growth without pretending every project starts from zero."
             />
             <FeatureCard
-              eyebrow="Markdown"
-              title="Markdown stays in control"
-              body="Plans, mind maps, and diagrams live in normal files, so your team can review, version, and edit everything directly."
+              eyebrow="Team clarity"
+              title="Split work without chaos"
+              body="Give builders, designers, and presenters a shared plan so everyone knows what matters now, what can wait, and what proves the idea."
               icon=">"
             />
             <FeatureCard
-              eyebrow="Workflow"
-              title="Move from idea to implementation"
-              body="Use Planora to shape scope, break work into stages, and keep development aligned as the project evolves."
+              eyebrow="Roadmaps"
+              title="Keep momentum after launch"
+              body="Use Planora to turn post-demo feedback into staged improvements, backlog decisions, and a roadmap the team can actually follow."
               large
               accent
               visual="chip"
