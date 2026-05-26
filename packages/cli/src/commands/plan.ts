@@ -13,6 +13,7 @@ import {
   architectureGenerator,
   agentSetupGenerator,
   planoraJsonGenerator,
+  SqliteStorage,
 } from '@planora/core';
 import { PlanoraAgent, plannerSystemPrompt } from '@planora/runner';
 
@@ -113,6 +114,23 @@ async function generateWithAi(
     );
 
     if (result.status === 'success') {
+      // Save run to SQLite
+      try {
+        const storage = new SqliteStorage();
+        storage.createRun({
+          id: result.runId,
+          projectId: name,
+          workflow: 'plan',
+          status: result.status,
+          output: result.output.slice(0, 500),
+          stepsUsed: result.stepsUsed,
+          tokensUsed: result.tokensUsed,
+          startedAt: new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+        });
+        storage.close();
+      } catch { /* SQLite optional */ }
+
       console.log('✓ Plan wygenerowany!\n');
       console.log(`  Kroki:  ${result.stepsUsed}`);
       console.log(`  Tokeny: ${result.tokensUsed}`);
@@ -122,6 +140,24 @@ async function generateWithAi(
       }
       console.log('');
     } else {
+      // Save failed run
+      try {
+        const storage = new SqliteStorage();
+        storage.createRun({
+          id: result.runId,
+          projectId: name,
+          workflow: 'plan',
+          status: 'failed',
+          output: '',
+          stepsUsed: result.stepsUsed,
+          tokensUsed: result.tokensUsed,
+          startedAt: new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+          error: result.error || 'unknown',
+        });
+        storage.close();
+      } catch { /* SQLite optional */ }
+
       console.log(`❌ Błąd: ${result.error}\n`);
     }
   } catch (error) {
