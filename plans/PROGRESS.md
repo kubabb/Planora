@@ -1,6 +1,6 @@
 # Planora — Progress Tracker
 
-> Ostatnia aktualizacja: 2025-05-26 23:00
+> Ostatnia aktualizacja: 2025-05-26 23:51
 
 ## ✅ Zrobione
 
@@ -10,54 +10,61 @@
 - [x] 5 pakietów
 - [x] Build przechodzi
 
-### M2: Core — AiClient + Config + Models + Generatory + Storage
-- [x] `core/src/ai/` — 11 plików, bezpośredni klient LLM
+### M2: Core — AiClient + Config + Models + Generatory + Storage + Memory + Analyzery + Utils
+- [x] `core/src/ai/` — 11 plików, bezpośredni klient LLM (OpenRouter/OpenAI/Ollama/OpenCode)
 - [x] `core/src/config/` — ~/.planora/config.json (chmod 600)
 - [x] `core/src/models/` — AgentRun zamiast HermesRun
 - [x] `core/src/generators/` — 6 generatorów statycznych
 - [x] `core/src/storage/` — SQLite (better-sqlite3, WAL mode)
+- [x] `core/src/memory/` — Qdrant vector memory (fetch-based, zero deps)
+- [x] `core/src/analyzers/` — Repo analyzer + stack recommender
+- [x] `core/src/utils/` — Mermaid builder (flowchart, sequence, gantt)
 
-### M5: CLI (4 komendy z 7)
+### M5: CLI — wszystkie 10 komend
 - [x] `planora config` — wizard + --show + --test
 - [x] `planora agent` — --status + --history (SQLite)
-- [x] `planora plan` — statyczne szablony + --ai (przez agenta)
-- [x] `planora init` — inicjalizacja z SQLite
+- [x] `planora plan` — statyczne szablony + --ai (agent)
+- [x] `planora init` — inicjalizacja + SQLite
+- [x] `planora roadmap` — ROADMAP.md
+- [x] `planora mindmap` — MINDMAP.md
+- [x] `planora web` — launch web app
+- [x] `planora analyze` — repo analysis + stack recommend
+- [x] `planora code` — AI implementuje funkcję
+- [x] `planora review` — AI code review
 
-### Agent Engine
-- [x] `runner/src/agent.ts` — pętla think → act → observe
-- [x] `runner/src/session.ts` — zarządzanie konwersacją
-- [x] `runner/src/prompts/` — system + planner
-- [x] `runner/src/tools/` — file_read, file_write, file_list
+### Agent Engine (runner)
+- [x] 3 workflowy: plan, code, review
+- [x] 8 tooli: file_read, file_write, file_list, search, shell, web_search, memory_store, memory_search
+- [x] 7 promptów: system, planner, coder, reviewer (PL+EN)
+- [x] Qdrant auto-store po każdym planie
+- [x] Retry na poziomie AiClient (exponential backoff)
 
-### Plany + Brain
-- [x] `plans/08_OWN_AGENT.md`
-- [x] Wszystkie plany zaktualizowane
-- [x] Brain: ADR + Implementation Progress
+### Testy
+- [x] 25 unit testów (vitest)
+- [x] Testy: generatory (6), config (6), agent (4), analyzery (9)
+
+### Code Quality
+- [x] DRY — helpers.ts eliminuje duplikację CLI
+- [x] Zero martwych importów
+- [x] Provider z configa, nie hardcodowany
+- [x] Sync import zamiast async w konstruktorze
 
 ---
 
 ## 🔲 Do zrobienia
 
-### M5: CLI — pozostałe komendy
-- [ ] `planora analyze` — analiza repo
-- [ ] `planora web` — odpalenie web app
-- [ ] `planora roadmap` — sam ROADMAP.md
-- [ ] `planora mindmap` — sam MINDMAP.md
-- [ ] `planora plan --ai` — zapisywanie runów do SQLite
-
-### Runner
-- [ ] Workflow `code`
-- [ ] Workflow `review`
-- [ ] Więcej tooli: web_search, shell
-
-### Core
-- [ ] `core/src/analyzers/` — repo analyzer, stack recommender
-- [ ] `core/src/utils/` — mermaid builder, markdown utils
+### M4: Web App (user robi osobno)
+### M6: VS Code extension (później)
+### M7: Hermes opcjonalny orchestrator (później)
 
 ### Testy
-- [ ] Testy jednostkowe (vitest)
-- [ ] CI pipeline
+- [ ] Testy integracyjne CLI
+- [ ] Testy mermaid builder
 
-### M4: Web App (user robi osobno)
-### M6: VS Code (później)
-### M7: Hermes (opcjonalny)
+### CI/CD
+- [x] CI pipeline (test + build)
+- [x] Security audit (gitleaks + semgrep + codeQL)
+
+### Dokumentacja
+- [ ] README.md z przykładami
+- [ ] Brain — aktualizacja Atlas
