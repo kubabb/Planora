@@ -6,11 +6,13 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "echo no tests yet"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "typescript": "^5.4"
+    "typescript": "^5.4",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",

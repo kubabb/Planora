@@ -5,6 +5,8 @@ export interface AgentConfig {
   maxSteps: number;
   /** Max context window in estimated tokens */
   maxContextTokens: number;
+  /** Max wall-clock time per run (ms) */
+  timeoutMs: number;
   /** Language for prompts */
   language: 'pl' | 'en';
 }
@@ -12,6 +14,7 @@ export interface AgentConfig {
 export const DEFAULT_AGENT_CONFIG: AgentConfig = {
   maxSteps: 10,
   maxContextTokens: 8000,
+  timeoutMs: 300_000, // 5 minutes
   language: 'pl',
 };
 

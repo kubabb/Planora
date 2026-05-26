@@ -16,6 +16,19 @@ export interface WorkflowInput {
   outputDir: string;
 }
 
+export interface CodeInput {
+  projectName: string;
+  feature: string;
+  files: string[];
+  projectDir: string;
+}
+
+export interface ReviewInput {
+  projectName: string;
+  files: string[];
+  projectDir: string;
+}
+
 export interface WorkflowOutput {
   runId: string;
   status: AgentRunStatus;
@@ -39,19 +52,54 @@ export class PlanoraAgent {
     workflow: WorkflowInput,
     systemPrompt: string,
   ): Promise<WorkflowOutput> {
-    const runId = generateId();
-    const session = new AgentSession(workflow.projectName, runId, this.config);
-
-    // Build initial messages
+    const session = new AgentSession(workflow.projectName, generateId(), this.config);
     session.addSystem(systemPrompt);
-    session.addUser(this.buildUserPrompt(workflow));
+    session.addUser(this.buildPlanUserPrompt(workflow));
+    return this.runLoop(session);
+  }
 
+  /**
+   * Run the code workflow — implement a feature.
+   */
+  async code(
+    input: CodeInput,
+    systemPrompt: string,
+  ): Promise<WorkflowOutput> {
+    const session = new AgentSession(input.projectName, generateId(), this.config);
+    session.addSystem(systemPrompt);
+    session.addUser(this.buildCodeUserPrompt(input));
+    return this.runLoop(session);
+  }
+
+  /**
+   * Run the review workflow — review code changes.
+   */
+  async review(
+    input: ReviewInput,
+    systemPrompt: string,
+  ): Promise<WorkflowOutput> {
+    const session = new AgentSession(input.projectName, generateId(), this.config);
+    session.addSystem(systemPrompt);
+    session.addUser(this.buildReviewUserPrompt(input));
+    return this.runLoop(session);
+  }
+
+  // ─── Core loop ────────────────────────────────────
+
+  private async runLoop(session: AgentSession): Promise<WorkflowOutput> {
+    const runId = session.runId;
     let stepCount = 0;
     const tools = getToolSchemas();
+    const startTime = Date.now();
 
     try {
       while (stepCount < this.config.maxSteps) {
         stepCount++;
+
+        // Check timeout
+        if (Date.now() - startTime > this.config.timeoutMs) {
+          return this.buildOutput(runId, 'failed', [], session, stepCount, 'Przekroczono limit czasu');
+        }
 
         // 1. Think — send context to AI
         const response = tools.length > 0
@@ -86,39 +134,33 @@ export class PlanoraAgent {
               );
             }
           }
-          // Continue loop — AI will process tool results
-          continue;
+          continue; // Back to think
         }
 
-        // 4. No tool calls — agent finished
+        // 4. No tool calls — agent finished (or needs user input)
         break;
       }
 
-      return {
-        runId,
-        status: 'success',
-        files: this.extractFiles(session),
-        output: session.messages
-          .filter((m) => m.role === 'assistant')
-          .map((m) => m.content)
-          .join('\n\n'),
-        stepsUsed: stepCount,
-        tokensUsed: session.tokensUsed,
-      };
+      if (stepCount >= this.config.maxSteps) {
+        return this.buildOutput(runId, 'failed', [], session, stepCount, 'Przekroczono limit kroków');
+      }
+
+      return this.buildOutput(runId, 'success', this.extractFiles(session), session, stepCount);
     } catch (error) {
-      return {
+      return this.buildOutput(
         runId,
-        status: 'failed',
-        files: [],
-        output: '',
-        stepsUsed: stepCount,
-        tokensUsed: session.tokensUsed,
-        error: error instanceof Error ? error.message : String(error),
-      };
+        'failed',
+        [],
+        session,
+        stepCount,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
-  private buildUserPrompt(input: WorkflowInput): string {
+  // ─── Prompt builders ──────────────────────────────
+
+  private buildPlanUserPrompt(input: WorkflowInput): string {
     return `Stwórz kompletny plan dla projektu:
 
 **Nazwa:** ${input.projectName}
@@ -128,6 +170,51 @@ export class PlanoraAgent {
 Wygeneruj wszystkie pliki i zapisz je w katalogu: ${input.outputDir}
 
 Po wygenerowaniu każdego pliku użyj narzędzia file_write aby go zapisać.`;
+  }
+
+  private buildCodeUserPrompt(input: CodeInput): string {
+    return `Zaimplementuj funkcję:
+
+**Funkcja:** ${input.feature}
+**Pliki do modyfikacji:** ${input.files.join(', ')}
+
+Katalog projektu: ${input.projectDir}
+
+Przeczytaj każdy plik, wprowadź zmiany, zapisz i zweryfikuj buildem.`;
+  }
+
+  private buildReviewUserPrompt(input: ReviewInput): string {
+    return `Przejrzyj kod:
+
+**Pliki:** ${input.files.join(', ')}
+
+Katalog projektu: ${input.projectDir}
+
+Wygeneruj raport code review i zakończ linią REVIEW_COMPLETE.`;
+  }
+
+  // ─── Helpers ──────────────────────────────────────
+
+  private buildOutput(
+    runId: string,
+    status: AgentRunStatus,
+    files: string[],
+    session: AgentSession,
+    steps: number,
+    error?: string,
+  ): WorkflowOutput {
+    return {
+      runId,
+      status,
+      files,
+      output: session.messages
+        .filter((m) => m.role === 'assistant')
+        .map((m) => m.content)
+        .join('\n\n'),
+      stepsUsed: steps,
+      tokensUsed: session.tokensUsed,
+      error,
+    };
   }
 
   private extractFiles(session: AgentSession): string[] {
