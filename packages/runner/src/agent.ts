@@ -2,6 +2,7 @@
 // Uses AiClient for LLM calls, manages sessions and tools.
 
 import type { AiClient, AiResponse, AiToolCall } from '@planora/core';
+import { QdrantMemory } from '@planora/core';
 import { AgentSession } from './session.js';
 import type { AgentConfig } from './config.js';
 import { DEFAULT_AGENT_CONFIG } from './config.js';
@@ -40,10 +41,14 @@ export interface WorkflowOutput {
 }
 
 export class PlanoraAgent {
+  private memory: QdrantMemory;
+
   constructor(
     private client: AiClient,
     private config: AgentConfig = DEFAULT_AGENT_CONFIG,
-  ) {}
+  ) {
+    this.memory = new QdrantMemory(client);
+  }
 
   /**
    * Run the plan workflow — generate project plan files.
@@ -145,7 +150,20 @@ export class PlanoraAgent {
         return this.buildOutput(runId, 'failed', [], session, stepCount, 'Przekroczono limit kroków');
       }
 
-      return this.buildOutput(runId, 'success', this.extractFiles(session), session, stepCount);
+      const output = this.buildOutput(runId, 'success', this.extractFiles(session), session, stepCount);
+
+      // Store plan in Qdrant memory for future reference
+      if (output.status === 'success' && output.output) {
+        try {
+          await this.memory.store('plans', runId, output.output, {
+            type: 'plan',
+            project: session.messages[1]?.content?.split('**Nazwa:**')?.[1]?.split('\n')?.[0]?.trim() || '',
+            files: output.files,
+          });
+        } catch { /* memory is non-critical */ }
+      }
+
+      return output;
     } catch (error) {
       return this.buildOutput(
         runId,

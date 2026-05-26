@@ -188,6 +188,10 @@ const shellTool: AgentToolDef = {
 
 import { webSearchTool } from './web-search.js';
 
+// ─── memory tools ────────────────────────────────────
+
+import { memoryStoreTool, memorySearchTool } from './memory-tools.js';
+
 // ─── registry ─────────────────────────────────────────
 
 export const ALL_TOOLS: AgentToolDef[] = [
@@ -197,6 +201,8 @@ export const ALL_TOOLS: AgentToolDef[] = [
   searchTool,
   shellTool,
   webSearchTool,
+  memoryStoreTool,
+  memorySearchTool,
 ];
 
 export function getToolSchemas(): AiTool[] {
