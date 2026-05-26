@@ -3,7 +3,6 @@
 import { Command } from 'commander';
 import {
   loadConfig,
-  getActiveProvider,
   redactConfig,
   SqliteStorage,
 } from '@planora/core';
@@ -22,22 +21,22 @@ export const agentCommand = new Command('agent')
 
 async function showStatus(): Promise<void> {
   const config = loadConfig();
-  const provider = getActiveProvider(config);
+  const safe = redactConfig(config);
+  const providerKey = Object.keys(config.providers)[0] || 'default';
+  const safeProvider = safe.providers[providerKey];
 
-  if (!provider) {
+  if (!safeProvider) {
     console.log('\n❌ Agent nie jest skonfigurowany.');
     console.log('   Uruchom: planora config\n');
     return;
   }
 
-  const safe = redactConfig(config);
-
   console.log('\n🤖 Planora Agent Status\n');
-  console.log(`  Provider:  ${Object.keys(config.providers)[0] || 'default'}`);
-  console.log(`  Model:     ${provider.model}`);
-  console.log(`  API Key:   ${safe.providers.default?.apiKey || '****'}`);
-  if (provider.baseUrl) {
-    console.log(`  URL:       ${provider.baseUrl}`);
+  console.log(`  Provider:  ${providerKey}`);
+  console.log(`  Model:     ${safeProvider.model}`);
+  console.log(`  API Key:   ${safeProvider.apiKey}`);
+  if (safeProvider.baseUrl) {
+    console.log(`  URL:       ${safeProvider.baseUrl}`);
   }
   console.log(`  Config:    ~/.planora/config.json`);
   console.log(`  Version:   0.1.0\n`);
