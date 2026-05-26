@@ -24,6 +24,40 @@ const terminalScript: TerminalEntry[] = [
   { kind: 'response', text: 'dashboard running at http://localhost:4173', tone: 'cyan' },
 ];
 
+const heroWords = ['build', 'plan', 'develop'];
+
+function useTypingCycle(words: string[], typingMs = 90, pauseMs = 1300, deletingMs = 48) {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [visibleLength, setVisibleLength] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const word = words[wordIndex] ?? '';
+    const isComplete = visibleLength === word.length;
+    const isEmpty = visibleLength === 0;
+    const delay = isComplete && !isDeleting ? pauseMs : isDeleting ? deletingMs : typingMs;
+
+    const handle = window.setTimeout(() => {
+      if (!isDeleting && isComplete) {
+        setIsDeleting(true);
+        return;
+      }
+
+      if (isDeleting && isEmpty) {
+        setIsDeleting(false);
+        setWordIndex((current) => (current + 1) % words.length);
+        return;
+      }
+
+      setVisibleLength((current) => current + (isDeleting ? -1 : 1));
+    }, delay);
+
+    return () => window.clearTimeout(handle);
+  }, [deletingMs, isDeleting, pauseMs, typingMs, visibleLength, wordIndex, words]);
+
+  return words[wordIndex]?.slice(0, visibleLength) ?? '';
+}
+
 function useTerminalPlayback(script: TerminalEntry[]) {
   const [history, setHistory] = useState<TerminalEntry[]>([]);
   const [activeCommand, setActiveCommand] = useState('');
@@ -448,7 +482,24 @@ function FeatureCard({
 }
 
 export function App() {
-  const footerLinks = useMemo(() => ['Privacy', 'Terms', 'GitHub', 'Status'], []);
+  const typedHeroWord = useTypingCycle(heroWords);
+  const footerGroups = useMemo(
+    () => [
+      {
+        title: 'Product',
+        links: ['Documentation', 'CLI', 'Web dashboard', 'VS Code'],
+      },
+      {
+        title: 'Planning',
+        links: ['Hackathons', 'MVP roadmap', 'Existing repos', 'Team handoff'],
+      },
+      {
+        title: 'Project',
+        links: ['GitHub', 'Status', 'Privacy', 'Terms'],
+      },
+    ],
+    [],
+  );
   const { pathname, navigate } = usePathname();
   const isDocumentationPage = pathname === '/documentation';
 
@@ -497,7 +548,11 @@ export function App() {
           <div className="hero-section__grid" />
           <div className="hero-content reveal is-visible" data-reveal>
             <span className="hero-orbit-label">Plan slowly. Ship clearly.</span>
-            <h1>Planora.</h1>
+            <h1>
+              <span>We </span>
+              <span className="hero-typed-word">{typedHeroWord}</span>
+              <span className="hero-typed-cursor" aria-hidden="true" />
+            </h1>
           </div>
         </section>
 
@@ -532,6 +587,29 @@ export function App() {
               accent
               visual="chip"
             />
+            <FeatureCard
+              eyebrow="Scope"
+              title="Cut ideas into buildable stages"
+              body="Separate demo-critical work from nice-to-have polish so the team can move without arguing about priorities every hour."
+            />
+            <FeatureCard
+              eyebrow="Artifacts"
+              title="Generate files people can read"
+              body="Create project plans, roadmap notes, mind maps, and architecture diagrams as normal markdown that fits into git."
+              icon="/"
+            />
+            <FeatureCard
+              eyebrow="AI workflow"
+              title="Bring an agent into planning"
+              body="Use provider-backed planning to draft, refine, and review the project direction while keeping the final plan editable."
+              large
+              visual="grid"
+            />
+            <FeatureCard
+              eyebrow="Reviews"
+              title="Know what to improve next"
+              body="Turn repo analysis and feedback into practical next actions instead of a loose list of maybe-later tasks."
+            />
           </div>
         </section>
           </>
@@ -539,19 +617,38 @@ export function App() {
       </main>
 
       <footer className="footer" id="blog">
-        <div className="footer__brand">
-          <div className="footer__mark">*</div>
-          <div>
-            <strong>Planora Systems</strong>
-            <p>2024 Planora Systems. Engineered for the void.</p>
+        <div className="footer__main">
+          <div className="footer__brand">
+            <div className="footer__mark">P</div>
+            <div>
+              <strong>Planora Systems</strong>
+              <p>
+                Planning tools for hackathon teams, MVP builders, and existing projects that need
+                a clearer next step.
+              </p>
+            </div>
+          </div>
+          <div className="footer__status">
+            <span>Local-first</span>
+            <span>Markdown output</span>
+            <span>Agent-ready</span>
           </div>
         </div>
-        <div className="footer__links">
-          {footerLinks.map((label) => (
-            <a key={label} href="#">
-              {label}
-            </a>
+        <div className="footer__columns">
+          {footerGroups.map((group) => (
+            <div key={group.title} className="footer__column">
+              <h2>{group.title}</h2>
+              {group.links.map((label) => (
+                <a key={label} href={label === 'Documentation' ? '/documentation' : '#'}>
+                  {label}
+                </a>
+              ))}
+            </div>
           ))}
+        </div>
+        <div className="footer__bottom">
+          <span>2026 Planora Systems</span>
+          <span>Built by kubabb for slower planning and cleaner shipping.</span>
         </div>
       </footer>
     </div>
