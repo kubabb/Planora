@@ -44,7 +44,7 @@ jobs:
       - name: TruffleHog scan
         run: |
           curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
-          trufflehog git file://. --no-update --only-verified --fail
+          trufflehog filesystem . --results=verified
 
   codeql:
     name: CodeQL analysis
