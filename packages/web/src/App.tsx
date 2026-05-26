@@ -678,36 +678,13 @@ export function App() {
               accent
               visual="chip"
             />
-            <FeatureCard
-              eyebrow="Scope"
-              title="Cut ideas into buildable stages"
-              body="Separate demo-critical work from nice-to-have polish so the team can move without arguing about priorities every hour."
-            />
-            <FeatureCard
-              eyebrow="Artifacts"
-              title="Generate files people can read"
-              body="Create project plans, roadmap notes, mind maps, and architecture diagrams as normal markdown that fits into git."
-              icon="/"
-            />
-            <FeatureCard
-              eyebrow="AI workflow"
-              title="Bring an agent into planning"
-              body="Use provider-backed planning to draft, refine, and review the project direction while keeping the final plan editable."
-              large
-              visual="grid"
-            />
-            <FeatureCard
-              eyebrow="Reviews"
-              title="Know what to improve next"
-              body="Turn repo analysis and feedback into practical next actions instead of a loose list of maybe-later tasks."
-            />
           </div>
         </section>
           </>
         )}
       </main>
 
-      <footer className="footer" id="blog">
+      <footer className="footer reveal" id="blog" data-reveal>
         <div className="footer__main">
           <div className="footer__brand">
             <div className="footer__mark">P</div>

@@ -24,7 +24,7 @@
 html {
   background: var(--bg);
   scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
+  scroll-snap-type: y proximity;
 }
 
 body {
@@ -664,7 +664,7 @@ select {
 
 .features-section {
   background: linear-gradient(180deg, rgba(10, 18, 24, 0.96), rgba(10, 18, 24, 1));
-  padding: 4.25rem 1rem 5rem;
+  padding: 4.25rem 1rem 4.4rem;
   scroll-snap-align: start;
 }
 
@@ -734,26 +734,6 @@ select {
 .feature-card:nth-child(4) {
   animation-duration: 12.5s;
   animation-delay: -1s;
-}
-
-.feature-card:nth-child(5) {
-  animation-duration: 10.8s;
-  animation-delay: -3s;
-}
-
-.feature-card:nth-child(6) {
-  animation-duration: 9.8s;
-  animation-delay: -5s;
-}
-
-.feature-card:nth-child(7) {
-  animation-duration: 13s;
-  animation-delay: -2.5s;
-}
-
-.feature-card:nth-child(8) {
-  animation-duration: 11.2s;
-  animation-delay: -6s;
 }
 
 .feature-card:not(.feature-card-large) {
@@ -881,6 +861,7 @@ select {
     radial-gradient(circle at 12% 0%, rgba(166, 244, 255, 0.1), transparent 28%),
     linear-gradient(180deg, #091017, #070d12);
   overflow: hidden;
+  scroll-snap-align: end;
 }
 
 .footer::before {
@@ -894,6 +875,7 @@ select {
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.75), transparent);
   opacity: 0.4;
   pointer-events: none;
+  animation: footer-grid-drift 18s linear infinite;
 }
 
 .footer__main,
@@ -1030,6 +1012,15 @@ select {
   50% {
     opacity: 1;
     transform: scaleX(1);
+  }
+}
+
+@keyframes footer-grid-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(80px, 80px, 0);
   }
 }
 
