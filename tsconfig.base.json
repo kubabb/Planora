@@ -10,16 +10,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./packages",
-    "baseUrl": ".",
-    "paths": {
-      "@planora/core": ["./packages/core/src"],
-      "@planora/cli": ["./packages/cli/src"],
-      "@planora/vscode-ext": ["./packages/vscode-ext/src"],
-      "@planora/web": ["./packages/web/src"],
-      "@planora/runner": ["./packages/runner/src"]
-    }
+    "composite": true
   },
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist"]
 }

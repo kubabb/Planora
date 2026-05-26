@@ -12,6 +12,9 @@
   "exports": {
     ".": "./dist/index.js"
   },
+  "dependencies": {
+    "@planora/core": "*"
+  },
   "devDependencies": {
     "typescript": "^5.4"
   }

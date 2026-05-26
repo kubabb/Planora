@@ -1,352 +1,168 @@
-# Planora — Hermes Agent Integration
+# Planora — Opcjonalna Integracja z Hermes Agent
+
+> **Status:** Hermes jest OPCJONALNY. Planora działa w pełni bez niego poprzez własnego agenta.
+> Zobacz `plans/08_OWN_AGENT.md` — specyfikacja własnego agenta.
 
 ## Overview
 
-Planora używa Hermes Agent jako silnika AI do:
-- generowania planów projektów (przez AI zamiast szablonów),
-- implementacji feature'ów (coder job),
-- code review (reviewer job),
-- rekomendacji stacku technologicznego.
+Planora domyślnie używa **własnego agenta AI** zbudowanego na `@planora/core/src/ai/` (AiClient).
+Hermes Agent jest dostępny jako **opcjonalny orchestrator** dla złożonych multi-agent workflowów:
 
-Hermes jest opcjonalny — generatory działają też bez niego (statyczne szablony). Z Hermesem plany są bogatsze, kontekstowe i generowane przez AI.
-
----
-
-## Architektura integracji
-
-```
-Planora (CLI / Web / VS Code)
-        |
-        v
-  @planora/core
-        |
-        v
-  @planora/runner  ------Hermes API------> Hermes Agent
-        |                                      |
-        v                                      v
-  [SQLite: run history]              [AI Model: Claude, GPT, Llama...]
-```
-
-Runner to cienka warstwa między Planorą a Hermesem:
-- wysyła prompty do Hermesa,
-- odbiera wyniki,
-- zapisuje historię runów.
+| Scenariusz | Mechanizm |
+|-----------|-----------|
+| Podstawowe planowanie (`planora plan --ai`) | Własny agent Planory |
+| Generowanie roadmap, mindmap | Własny agent Planory |
+| Code review (pojedyncze) | Własny agent Planory |
+| Multi-agent workflow (planner → coder → reviewer) | Hermes orchestrator (opcjonalny) |
+| Subagent-driven development (3 coderów równolegle) | Hermes orchestrator (opcjonalny) |
 
 ---
 
-## Model Configuration
+## Kiedy używać Hermesa?
 
-### Providerzy
+Hermes jest potrzebny tylko gdy user chce:
+1. **Multi-agent workflowy** — planner → coder → reviewer z subagentami
+2. **Równoległe taski** — delegacja do 3 coderów jednocześnie
+3. **Cron joby** — automatyczne planowanie/review na timerze
+4. **Integracja z messaging** — Telegram, Discord, Slack notify
 
-| Provider | Typ | Konfiguracja |
-|----------|-----|-------------|
-| **OpenRouter** | Cloud API | `apiKey`, `model` (np. `anthropic/claude-sonnet-4`) |
-| **OpenCode** | Cloud API | `apiKey`, `model` |
-| **Ollama** | Local | `url` (domyślnie `http://localhost:11434`), `model` (np. `llama3:8b`) |
-| **Custom OpenAI** | Dowolny | `url`, `apiKey`, `model` |
+Dla 90% przypadków wystarczy własny agent Planory (AiClient).
 
-### Config Wizard (CLI)
+---
+
+## Architektura Dualna
+
+```mermaid
+graph TD
+    User[User]
+
+    User --> CLI[CLI: planora plan --ai]
+
+    CLI --> Runner[Runner: PlanoraRunner]
+
+    Runner --> Agent{Ścieżka?}
+
+    Agent -->|domyślnie| OwnAgent[Własny agent Planory]
+    Agent -->|--hermes| HermesAgent[Hermes Agent]
+
+    OwnAgent --> AiClient[AiClient: core/src/ai/]
+    AiClient --> AI[AI API]
+
+    HermesAgent --> HermesJobs[Hermes Jobs: planner, coder, reviewer]
+    HermesJobs --> Subagents[Subagents: 3 równolegle]
+    Subagents --> AI2[AI API]
+
+    style OwnAgent fill:#4CAF50,stroke:#2E7D32,color:#fff
+    style HermesAgent fill:#FF9800,stroke:#E65100,color:#fff
+```
+
+---
+
+## Konfiguracja Hermesa (tylko dla power-userów)
+
+### Instalacja
+
+```bash
+# 1. Zainstaluj Hermesa (spoza Planory)
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+
+# 2. W Planorze: skonfiguruj Hermesa jako dodatek
+planora hermes init
+```
+
+### Config Wizard
 
 ```
 $ planora hermes init
 
-? Choose AI provider:
-  > OpenRouter (cloud)
-    Ollama (local)
-    OpenCode (cloud)
-    Custom OpenAI-compatible
+  ⚠ Hermes jest opcjonalnym dodatkiem.
+  Planora działa w pełni bez niego przez własnego agenta.
 
-? API Key: ********
+  Hermes daje:
+  - Multi-agent workflowy (planner → coder → reviewer)
+  - Równoległe taski (3 coderów jednocześnie)
+  - Cron joby dla automatyzacji
 
-? Default model:
-  > anthropic/claude-sonnet-4
-    openai/gpt-4o
-    google/gemini-pro
+? Czy chcesz skonfigurować Hermesa? (y/N): y
 
-? Test connection? (Y/n): y
-  ✓ Connected! Model: anthropic/claude-sonnet-4
+  ✓ Wykryto Hermes Agent v2.4.1
+  ✓ Używam tego samego klucza API co Planora (OpenRouter)
+  ✓ Tworzę joby: planora-planner, planora-coder, planora-reviewer
 
-✓ Hermes configured!
-  Config saved to ~/.planora/hermes-config.json
-  HERMES_SETUP.md generated
-```
-
-### Config file format
-
-```json
-{
-  "provider": "openrouter",
-  "apiKey": "sk-or-v1-...",
-  "model": "anthropic/claude-sonnet-4",
-  "options": {
-    "temperature": 0.7,
-    "maxTokens": 4096
-  },
-  "customUrl": null
-}
+  ✓ Hermes skonfigurowany!
+    Użyj: planora plan --hermes   (multi-agent)
+    lub:   planora plan --ai       (własny agent, domyślnie)
 ```
 
 ---
 
-## Job Definitions
+## Joby Hermesa (opcjonalne)
 
-Planora definiuje 3 standardowe joby Hermesa:
-
-### 1. planner
-
-Generuje pełny plan projektu (PROJECT_PLAN.md, MINDMAP.md, ARCHITECTURE.md).
+### 1. planner (multi-agent)
 
 ```yaml
-# ~/.hermes/jobs/planora-planner.yaml
 name: planora-planner
-description: "Generate project plan, mindmap, and architecture docs"
+description: "Multi-agent project planning"
 trigger: manual
-model: ${HERMES_MODEL}
+model: ${PLANORA_MODEL}
 skills:
   - planora
 prompt: |
-  You are a project planner. Generate the following for project "{project_name}":
+  You are an orchestrator. Delegate to subagents to generate:
+  1. PROJECT_PLAN.md (architect agent)
+  2. MINDMAP.md (mindmap agent)
+  3. ARCHITECTURE.md (architecture agent)
 
-  Tech stack: {stack}
-  Description: {description}
-
-  Create:
-  1. PROJECT_PLAN.md — overview, MVP, milestones, risks
-  2. MINDMAP.md — hierarchical outline for markmap rendering
-  3. ARCHITECTURE.md — Mermaid diagrams (system, data flow, components)
-
-  Output each file with its filename as a header.
+  Project: {project_name}
+  Stack: {stack}
 ```
 
-### 2. coder
-
-Implementuje konkretny feature na podstawie planu.
+### 2. coder (multi-agent)
 
 ```yaml
-# ~/.hermes/jobs/planora-coder.yaml
 name: planora-coder
-description: "Implement a feature based on project plan"
+description: "Multi-agent feature implementation"
 trigger: manual
-model: ${HERMES_MODEL}
+model: ${PLANORA_MODEL}
 skills:
   - planora
 prompt: |
-  You are a developer implementing a feature for project "{project_name}".
+  You are an orchestrator. Delegate coding tasks to subagents.
+  Max 3 parallel workers.
 
-  Project plan: {project_plan_summary}
-  Feature to implement: {feature_description}
+  Feature: {feature_description}
   Tech stack: {stack}
-
-  Write production-ready code. Follow the project's architecture.
-  Create/modify files as needed. Write tests.
 ```
 
-### 3. reviewer
-
-Code review wygenerowanego kodu.
+### 3. reviewer (multi-agent)
 
 ```yaml
-# ~/.hermes/jobs/planora-reviewer.yaml
 name: planora-reviewer
-description: "Review code changes for quality and correctness"
+description: "Multi-agent code review"
 trigger: manual
-model: ${HERMES_MODEL}
+model: ${PLANORA_MODEL}
 skills:
   - planora
 prompt: |
-  You are a code reviewer for project "{project_name}".
-
-  Review the following changes:
-  {diff}
-
-  Check for:
-  - Correctness
-  - Type safety
-  - Architecture compliance
-  - Test coverage
-  - Performance issues
-  - Security vulnerabilities
-
-  Provide actionable feedback.
+  You are an orchestrator. Review code changes using specialized reviewer agents.
 ```
 
 ---
 
-## Workflow
-
-```mermaid
-flowchart TD
-    User[User: planora plan --ai] --> Runner
-    Runner --> Planner[planner job]
-    Planner --> AI[AI Model via Hermes]
-    AI --> Files[PROJECT_PLAN.md + MINDMAP.md + ARCHITECTURE.md]
-    Files --> User
-
-    User2[User: planora hermes code] --> Runner2
-    Runner2 --> Coder[coder job]
-    Coder --> AI2[AI Model via Hermes]
-    AI2 --> Code[Source files]
-
-    Code --> Reviewer[reviewer job]
-    Reviewer --> AI3[AI Model via Hermes]
-    AI3 --> Review[Review feedback]
-```
-
----
-
-## Runner Implementation
-
-```typescript
-// packages/runner/src/job-runner.ts
-
-import { HermesConfig, HermesRun } from '@planora/core';
-import { spawn } from 'child_process';
-
-export class JobRunner {
-  constructor(private config: HermesConfig) {}
-
-  async runJob(
-    jobName: 'planner' | 'coder' | 'reviewer',
-    projectId: string,
-    params: Record<string, string>
-  ): Promise<HermesRun> {
-    const run: HermesRun = {
-      id: generateId(),
-      projectId,
-      jobName,
-      status: 'running',
-      startedAt: new Date(),
-    };
-
-    try {
-      // Wywołaj Hermes CLI
-      const output = await this.executeHermesJob(jobName, params);
-      run.status = 'success';
-      run.output = output;
-      run.finishedAt = new Date();
-    } catch (error) {
-      run.status = 'failed';
-      run.output = String(error);
-      run.finishedAt = new Date();
-    }
-
-    // Zapisz run do bazy
-    await this.saveRun(run);
-    return run;
-  }
-
-  private executeHermesJob(
-    jobName: string,
-    params: Record<string, string>
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const env = {
-        ...process.env,
-        HERMES_MODEL: this.config.model,
-        HERMES_PROVIDER: this.config.provider,
-        ...params,
-      };
-
-      const proc = spawn('hermes', [
-        'run',
-        '--job', `planora-${jobName}`,
-        '--json',
-      ], { env });
-
-      let stdout = '';
-      let stderr = '';
-
-      proc.stdout.on('data', (data) => { stdout += data; });
-      proc.stderr.on('data', (data) => { stderr += data; });
-
-      proc.on('close', (code) => {
-        if (code === 0) resolve(stdout);
-        else reject(new Error(stderr || `Exit code: ${code}`));
-      });
-    });
-  }
-
-  async getRunHistory(projectId: string): Promise<HermesRun[]> {
-    return storage.getHermesRuns(projectId);
-  }
-}
-```
-
----
-
-## Integration Points with Core
-
-```typescript
-// packages/core/src/generators/hermes-setup.ts
-
-export function generateHermesSetup(config: HermesConfig): string {
-  return `# Hermes Setup for {projectName}
-
-## Model Configuration
-
-- **Provider:** ${config.provider}
-- **Model:** ${config.model}
-- **Status:** ${config.tested ? 'Connected ✓' : 'Not tested'}
-
-## Jobs
-
-### planner
-Generates project plan, mindmap, and architecture docs.
-
-Trigger: \`planora plan --ai\` or manual via Hermes CLI.
-
-### coder
-Implements features based on the project plan.
-
-Trigger: \`planora hermes code --feature "..."\`
-
-### reviewer
-Reviews code changes for quality and correctness.
-
-Trigger: \`planora hermes review\`
-
-## Workflow
-
-1. User runs \`planora plan --ai\` → triggers planner
-2. Planner generates all .md files
-3. User runs \`planora hermes code --feature "X"\` → triggers coder
-4. Coder implements feature
-5. User runs \`planora hermes review\` → triggers reviewer
-6. Reviewer provides feedback
-
-## Configuration File
-
-\`\`\`json
-${JSON.stringify(config, null, 2)}
-\`\`\`
-
-## Environment Variables
-
-- \`HERMES_PROVIDER\` — AI provider
-- \`HERMES_MODEL\` — model name
-- \`HERMES_API_KEY\` — API key (for cloud providers)
-- \`HERMES_LOCAL_URL\` — Ollama/custom endpoint
-`;
-}
-```
-
----
-
-## CLI Commands for Hermes
+## CLI Commands dla Hermesa
 
 ```
-planora hermes init      — First-time setup wizard
-planora hermes status    — Show current config + connection test
-planora hermes config    — Show/edit config
-planora hermes code      — Run coder job for a feature
-planora hermes review    — Run reviewer job
-planora hermes history   — Show run history for project
+planora hermes init      — Konfiguruje Hermesa jako opcjonalny dodatek
+planora hermes status    — Status: czy Hermes jest dostępny
+planora hermes code      — Uruchamia multi-agent coder
+planora hermes review    — Uruchamia multi-agent reviewer
+planora hermes history   — Historia runów Hermesa
 ```
 
 ---
 
 ## Security Notes
 
-- API key przechowywany lokalnie w `~/.planora/hermes-config.json` (0600 permissions)
-- Nigdy nie commitowany do repo (dodany do `.gitignore`)
-- Opcjonalnie: systemowy keychain zamiast plaintext (future enhancement)
+- API key współdzielony między Planorą a Hermesem (z `~/.planora/config.json`)
+- Hermes używa tego samego klucza — nie trzeba podawać drugi raz
+- Hermes config w `~/.hermes/config.yaml` referencjonuje klucz Planory

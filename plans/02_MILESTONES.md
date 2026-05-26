@@ -4,6 +4,8 @@
 
 Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testowalna całość.
 
+**Kluczowa zmiana (v2):** Planora ma własnego agenta AI. User nie potrzebuje Hermesa. Hermes jest opcjonalnym orchestratorem dla power-userów.
+
 ---
 
 ## M1: Monorepo Skeleton
@@ -25,12 +27,42 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
 
 ---
 
-## M2: Core — Shared Models & Generators
+## M2: Core — AiClient, Config, Models & Storage
 
-**Cel:** Współdzielony core — modele danych, generatory plików, narzędzia.
+**Cel:** Współdzielony core — własny klient LLM, system konfiguracji, modele danych, generatory, storage.
 
 ### Zadania
-- [ ] **Data models:** `Project`, `User`, `PlanFile`, `HermesConfig`
+
+- [ ] **AiClient — bezpośrednia komunikacja z AI API:**
+  ```typescript
+  // packages/core/src/ai/
+  // types.ts, client.ts, openai-compatible.ts, openrouter.ts, openai.ts, ollama.ts, factory.ts
+  interface AiClient {
+    generate(messages: AiMessage[], config: AiConfigOverrides): Promise<AiResponse>;
+    generateWithTools(messages: AiMessage[], tools: AiTool[], config: AiConfigOverrides): Promise<AiResponse>;
+    generateStructured<T>(messages: AiMessage[], schema: ZodSchema<T>, config: AiConfigOverrides): Promise<T>;
+    generateStream(messages: AiMessage[], config: AiConfigOverrides): AsyncIterable<AiStreamEvent>;
+    testConnection(): Promise<{ ok: boolean; model: string; latency: number }>;
+  }
+  ```
+  - Implementacje: OpenRouter, OpenAI, Ollama, OpenCode, OpenAI-compatible
+  - Retry z exponential backoff
+  - Error handling: AuthError, RateLimitError, TimeoutError, AiError
+
+- [ ] **Config system — zarządzanie kluczem API:**
+  ```typescript
+  // packages/core/src/config/
+  interface PlanoraConfig {
+    version: number;
+    providers: Record<string, ProviderConfig>;
+    preferences: UserPreferences;
+  }
+  ```
+  - `loader.ts` — read/write `~/.planora/config.json` (chmod 600)
+  - `validator.ts` — walidacja + test połączenia
+  - Maskowanie API key w logach (`sk-...****`)
+
+- [ ] **Data models:**
   ```typescript
   interface Project {
     id: string;
@@ -50,33 +82,38 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
   }
 
   interface PlanFile {
-    type: 'PROJECT_PLAN' | 'ROADMAP' | 'MINDMAP' | 'ARCHITECTURE' | 'HERMES_SETUP';
+    type: 'PROJECT_PLAN' | 'ROADMAP' | 'MINDMAP' | 'ARCHITECTURE' | 'AGENT_SETUP';
     content: string;
     projectId: string;
   }
-  ```
 
-- [ ] **Generators:**
-  - `ProjectPlanGenerator` → PROJECT_PLAN.md
-  - `RoadmapGenerator` → ROADMAP.md
-  - `MindmapGenerator` → MINDMAP.md
-  - `ArchitectureGenerator` → ARCHITECTURE.md
-  - `HermesSetupGenerator` → HERMES_SETUP.md
-  - `PlanoraJsonGenerator` → planora.json
+  interface AgentRun {
+    id: string;
+    projectId: string;
+    workflow: 'plan' | 'code' | 'review';
+    status: 'pending' | 'running' | 'success' | 'failed';
+    output: string;
+    stepsUsed: number;
+    tokensUsed: number;
+    startedAt: Date;
+    finishedAt: Date;
+  }
+  ```
 
 - [ ] **Storage:**
   - SQLite adapter (`src/storage/sqlite.ts`)
-  - CRUD dla User i Project
+  - CRUD dla User, Project, AgentRun
 
 - [ ] **Utils:**
   - Mermaid block builder
   - Markdown outline builder (dla mindmap)
-  - Stack recommender (heuristic-based, później AI)
+  - Stack recommender
 
 ### Deliverables
 - Paczka `@planora/core` z pełnym API
-- Każdy generator zwraca string (zawartość pliku)
-- Testy jednostkowe generatorów
+- AiClient działa z minimum 3 providerami
+- Konfiguracja zapisywana/odczytywana z `~/.planora/config.json`
+- Testy jednostkowe AiClient (mock fetch) + config loadera
 
 ---
 
@@ -109,10 +146,11 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
   - Component diagram
   - Deployment diagram (opcjonalnie)
 
-- [ ] **HERMES_SETUP.md** — konfiguracja:
-  - Modele (provider + model name)
-  - Joby (name, trigger, tools)
-  - Workflow (plan → code → review)
+- [ ] **AGENT_SETUP.md** — konfiguracja agenta Planory:
+  - Provider + model
+  - Workflowy (plan, code, review)
+  - Tool registry
+  - Historia runów
 
 - [ ] **planora.json** — metadane:
   ```json
@@ -121,7 +159,7 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
     "name": "string",
     "stack": ["string"],
     "files": ["PROJECT_PLAN.md", ...],
-    "hermesReady": false
+    "agentReady": true
   }
   ```
 
@@ -142,7 +180,7 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
   - `/project/:id` → Project View
   - `/project/:id/mindmap` → Mind Map View
   - `/project/:id/graphs` → Graphs View
-  - `/project/:id/hermes` → Hermes View
+  - `/project/:id/agent` → Agent View (status, runy, historia)
 
 - [ ] **Dashboard:**
   - Lista projektów (fetch z SQLite przez API)
@@ -152,7 +190,7 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
 - [ ] **Project View:**
   - Overview (z PROJECT_PLAN.md)
   - Roadmapa (z ROADMAP.md)
-  - Linki do Mind Map, Graphs, Hermes
+  - Linki do Mind Map, Graphs, Agent
 
 - [ ] **Mind Map View:**
   - Renderowanie MINDMAP.md przez markmap
@@ -160,13 +198,12 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
 
 - [ ] **Graphs View:**
   - Renderowanie bloków ```mermaid z ARCHITECTURE.md
-  - Mermaid.js z ciemnym/ jasnym motywem
+  - Mermaid.js z ciemnym/jasnym motywem
 
-- [ ] **Hermes View:**
-  - Status środowiska
-  - Lista modeli
-  - Joby i ich status
-  - Historia runów (logi)
+- [ ] **Agent View:**
+  - Status agenta (provider, model, latency)
+  - Lista workflowów i ich status
+  - Historia runów (logi, tokeny)
 
 - [ ] **User profile:**
   - Lokalny profil (name, preferencje)
@@ -179,46 +216,51 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
 
 ---
 
-## M5: CLI Commands
+## M5: CLI Commands + Agent Engine
 
-**Cel:** Wszystkie komendy CLI działają przez `@planora/cli`.
+**Cel:** Wszystkie komendy CLI + silnik agenta Planory.
 
 ### Zadania
+
+- [ ] **Agent Engine (`packages/runner/`):**
+  - `agent.ts` — główna pętla agenta (think → act → observe)
+  - `session.ts` — AgentSession (zarządzanie konwersacją)
+  - `prompts/` — systemowe prompty dla planisty, kodera, reviewera
+  - `tools/` — rejestr tooli (file-read, file-write, file-list, shell, web-search)
+  - `workflows/` — plan-workflow, code-workflow, review-workflow
+  - `history.ts` — zapis runów do SQLite
+  - `config.ts` — loader konfiguracji
+
+- [ ] **`planora config`** — zarządzanie AI:
+  - `planora config` → interactive wizard (pierwsze użycie)
+  - `planora config show` → pokaż config (bez apiKey)
+  - `planora config test` → test połączenia
+  - `planora config set <key> <value>` → zmiana pojedynczej wartości
+
 - [ ] **`planora init`** — inicjalizuje nowy projekt Planora
   - Tworzy katalog `.planora/`
   - Zapisuje `planora.json`
   - Pyta o nazwę, opis, stack
 
-- [ ] **`planora plan`** — generuje wszystkie pliki planu
-  - Wywołuje generatory z core
-  - Zapisuje pliki w katalogu projektu
-  - Wyświetla summary
+- [ ] **`planora plan`** — generuje plany:
+  - `planora plan` → statyczne szablony
+  - `planora plan --ai` → używa własnego agenta (AiClient → AI API)
 
 - [ ] **`planora analyze`** — analizuje istniejące repo
-  - Czyta `package.json`, strukturę katalogów
-  - Sugeruje stack
-  - Generuje wstępny plan
 
-- [ ] **`planora roadmap`** — generuje sam ROADMAP.md
-  - Pyta o fazy / milestone'y
-  - Opcjonalnie: AI-assisted przez Hermesa
-
-- [ ] **`planora mindmap`** — generuje sam MINDMAP.md
-  - Z istniejącego planu lub od zera
-
-- [ ] **`planora hermes init`** — przygotowuje środowisko Hermesa
-  - Generuje HERMES_SETUP.md
-  - Tworzy joby (planner, coder, reviewer)
-  - Config modelu (wizard: OpenRouter, Ollama, custom)
+- [ ] **`planora roadmap`** — generuje ROADMAP.md
+- [ ] **`planora mindmap`** — generuje MINDMAP.md
+- [ ] **`planora agent`** — status agenta:
+  - `planora agent status` → provider, model, latency
+  - `planora agent history` → historia runów
 
 - [ ] **`planora web`** — odpala lokalną apkę React
-  - Uruchamia Vite dev server
-  - Otwiera przeglądarkę na `localhost:4173`
 
 ### Deliverables
 - Paczka `@planora/cli` jako globalny bin
 - `planora --help` pokazuje wszystkie komendy
-- Każda komenda ma `--help`
+- Agent działa: `planora plan --ai` generuje plany przez AI
+- Wizard konfiguracji: `planora config` zbiera tylko klucz API
 
 ---
 
@@ -229,79 +271,70 @@ Projekt podzielony na 7 kamieni milowych. Każdy milestone to samodzielna, testo
 ### Zadania
 - [ ] **Setup:** Standardowy projekt VS Code extension
 - [ ] **Komendy (Command Palette):**
-  - `Planora: Generate Plan` → wywołuje `planora plan`
-  - `Planora: Generate Roadmap` → wywołuje `planora roadmap`
-  - `Planora: Generate Mind Map` → wywołuje `planora mindmap`
-  - `Planora: Open Web View` → otwiera webview z lokalną apką
+  - `Planora: Configure AI...` → wizard konfiguracji w webview
+  - `Planora: Generate Plan (AI)` → plan --ai
+  - `Planora: Generate Roadmap`
+  - `Planora: Generate Mind Map`
+  - `Planora: Open Web View`
 
 - [ ] **Webview Panel:**
-  - Otwiera widok projektu w panelu VS Code
-  - Renderuje mindmap i grafy
+  - Wizard konfiguracji AI (taki sam jak CLI, ale w UI)
+  - Widok projektu
 
 - [ ] **Status Bar:**
-  - Ikona Planory
+  - Ikona Planory + status agenta (connected/disconnected)
   - Szybki dostęp do komend
 
-- [ ] **Context menu:**
-  - Klik prawym → "Planora: Analyze this project"
+- [ ] **Settings:**
+  - `planora.apiKey`, `planora.provider`, `planora.model`
+  - Bezpieczne przechowywanie (VS Code secrets API)
 
 ### Deliverables
 - Paczka `@planora/vscode-ext`
 - Działa po `F5` w VS Code
 - Komendy w Command Palette
+- Konfiguracja AI z poziomu VS Code
 
 ---
 
-## M7: Hermes Deep Integration
+## M7: Opcjonalna Integracja z Hermesem
 
-**Cel:** Pełna integracja z Hermes Agent — joby, workflow, modele, historia.
+**Cel:** Hermes jako opcjonalny orchestrator dla złożonych multi-agent workflowów.
+
+**UWAGA:** M7 jest OPCJONALNY. Planora działa w pełni bez niego (M1-M6).
 
 ### Zadania
-- [ ] **Model Config Wizard:**
-  - Interaktywny wybór providera
-  - Test połączenia
-  - Zapis configu lokalnie
+- [ ] **Hermes Bridge:**
+  - `runner/src/hermes-bridge.ts` — komunikacja z Hermes API
+  - Używane tylko gdy user jawnie skonfiguruje Hermesa
 
-- [ ] **Joby Hermesa:**
-  - `planner` — generuje plan projektu przez AI
-  - `coder` — implementuje feature'y
-  - `reviewer` — code review
+- [ ] **Multi-agent workflowy (przez Hermesa):**
+  - planner → coder → reviewer z subagentami
+  - Używane dla złożonych projektów
 
-- [ ] **Workflow:**
-  - user → planner → coder → reviewer
-  - Trigger: ręczny lub na push
+- [ ] **`planora hermes init`** — konfiguracja Hermesa jako dodatku
+  - Wykrywa czy Hermes jest zainstalowany
+  - Konfiguruje joby dla projektu
 
-- [ ] **Historia runów:**
-  - Zapis każdego runu (timestamp, status, output)
-  - Wyświetlanie w Hermes View (web app)
-
-- [ ] **Auto-setup:**
-  - `planora hermes init` tworzy wszystkie joby
-  - Generuje skills/hermes-agent dla projektu
-
-- [ ] **Konfiguracja providerów:**
-  - OpenRouter (api key)
-  - OpenCode (api key)
-  - Ollama (local endpoint)
-  - Custom OpenAI-compatible
+- [ ] **Fallback:** Gdy Hermes nie jest zainstalowany → własny agent Planory
 
 ### Deliverables
-- Hermes w pełni skonfigurowany po `planora hermes init`
-- Joby działają i zapisują output
-- Web app pokazuje historię
+- Hermes działa jako opcjonalny dodatek
+- User bez Hermesa nie traci żadnej funkcjonalności
+- User z Hermesem zyskuje multi-agent workflowy
 
 ---
 
 ## Timeline (szacunkowy)
 
-| Milestone | Est. czas | Zależności |
-|-----------|----------|------------|
-| M1: Monorepo | 1-2 dni | — |
-| M2: Core | 3-5 dni | M1 |
-| M3: Generators | 3-4 dni | M2 |
-| M4: Web App | 5-7 dni | M2 |
-| M5: CLI | 3-4 dni | M2, M3 |
-| M6: VS Code | 3-4 dni | M2, M5 |
-| M7: Hermes | 3-5 dni | M2, M5 |
+| Milestone | Est. czas | Zależności | Kluczowa zmiana vs v1 |
+|-----------|----------|------------|----------------------|
+| M1: Monorepo | 1-2 dni | — | Bez zmian |
+| M2: Core + AiClient | 5-7 dni | M1 | **NOWE:** AiClient, Config system |
+| M3: Generators | 3-4 dni | M2 | HermesSetup → AgentSetup |
+| M4: Web App | 5-7 dni | M2 | HermesView → AgentView |
+| M5: CLI + Agent | 5-7 dni | M2, M3 | **NOWE:** planora config, agent engine |
+| M6: VS Code | 3-4 dni | M2, M5 | Dodane settings AI |
+| M7: Hermes (opcjonalny) | 2-3 dni | M5 | **ZREDUKOWANY:** tylko bridge |
 
-**Razem: ~21-31 dni** (full-time dev)
+**Razem: ~24-34 dni** (full-time dev)
