@@ -11,3 +11,6 @@ export * from './models/index.js';
 
 // Generators
 export * from './generators/index.js';
+
+// Storage
+export * from './storage/index.js';

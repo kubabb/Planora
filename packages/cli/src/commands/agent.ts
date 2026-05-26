@@ -1,18 +1,22 @@
 // planora agent — agent status and run history
 
 import { Command } from 'commander';
-import { loadConfig, getActiveProvider, redactConfig } from '@planora/core';
+import {
+  loadConfig,
+  getActiveProvider,
+  redactConfig,
+  SqliteStorage,
+} from '@planora/core';
 
 export const agentCommand = new Command('agent')
   .description('Agent status and history')
   .option('--status', 'Show agent status')
-  .option('--history', 'Show run history')
+  .option('--history', 'Show run history (all projects)')
   .action(async (options) => {
     if (options.history) {
       await showHistory();
       return;
     }
-    // Default: show status
     await showStatus();
   });
 
@@ -29,7 +33,7 @@ async function showStatus(): Promise<void> {
   const safe = redactConfig(config);
 
   console.log('\n🤖 Planora Agent Status\n');
-  console.log(`  Provider:  ${Object.keys(config.providers).find(k => config.providers[k] === provider) || 'default'}`);
+  console.log(`  Provider:  ${Object.keys(config.providers)[0] || 'default'}`);
   console.log(`  Model:     ${provider.model}`);
   console.log(`  API Key:   ${safe.providers.default?.apiKey || '****'}`);
   if (provider.baseUrl) {
@@ -40,5 +44,44 @@ async function showStatus(): Promise<void> {
 }
 
 async function showHistory(): Promise<void> {
-  console.log('\n📜 Run history — jeszcze nie zaimplementowane (potrzebna baza SQLite)\n');
+  console.log('\n📜 Agent Run History\n');
+
+  try {
+    const storage = new SqliteStorage();
+    const projects = storage.listProjects() as Array<{ id: string; name: string }>;
+    storage.close();
+
+    if (projects.length === 0) {
+      console.log('  Brak projektów. Uruchom: planora init\n');
+      return;
+    }
+
+    for (const project of projects) {
+      const s2 = new SqliteStorage();
+      const runs = s2.listRuns(project.id) as Array<{
+        id: string;
+        workflow: string;
+        status: string;
+        steps_used: number;
+        tokens_used: number;
+        started_at: string;
+        error?: string;
+      }>;
+      s2.close();
+
+      console.log(`  📁 ${project.name} (${project.id.slice(0, 8)}...)`);
+      if (runs.length === 0) {
+        console.log('     (brak runów)\n');
+        continue;
+      }
+      for (const run of runs) {
+        const icon = run.status === 'success' ? '✅' : run.status === 'failed' ? '❌' : '🟡';
+        console.log(`     ${icon} ${run.workflow} — ${run.status} (${run.steps_used} steps, ${run.tokens_used} tokens) ${run.started_at}`);
+        if (run.error) console.log(`        Error: ${run.error}`);
+      }
+      console.log('');
+    }
+  } catch (e) {
+    console.log(`  Błąd odczytu bazy: ${e instanceof Error ? e.message : String(e)}\n`);
+  }
 }

@@ -4,7 +4,13 @@ import { Command } from 'commander';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
-import { planoraJsonGenerator, loadConfig, getActiveProvider, getConfigPath } from '@planora/core';
+import {
+  planoraJsonGenerator,
+  loadConfig,
+  getActiveProvider,
+  getConfigPath,
+  SqliteStorage,
+} from '@planora/core';
 
 export const initCommand = new Command('init')
   .description('Initialize a new Planora project')
@@ -61,6 +67,23 @@ export const initCommand = new Command('init')
 
     // .gitignore
     fs.writeFileSync(path.join(projectDir, '.gitignore'), '.planora/\nnode_modules/\ndist/\n.env\n', 'utf-8');
+
+    // Save to SQLite
+    try {
+      const storage = new SqliteStorage();
+      storage.createUser({ id: 'local', name: 'local', profile: 'local' });
+      storage.createProject({
+        id: projectId,
+        name: name!,
+        description: description!,
+        userId: 'local',
+        stack: stack!,
+        basePath: projectDir,
+      });
+      storage.close();
+    } catch (e) {
+      // SQLite is optional — init still works without it
+    }
 
     console.log(`\n✓ Projekt "${name}" utworzony w ${projectDir}/\n`);
     console.log(`  ID:      ${projectId}`);

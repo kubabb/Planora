@@ -1,13 +1,19 @@
 {
   "name": "planora",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "tsc -b",
     "test": "echo no tests yet"
   },
   "devDependencies": {
-    "typescript": "^5.4",
-    "@types/node": "^20"
+    "@types/node": "^20",
+    "typescript": "^5.4"
+  },
+  "dependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.10.0"
   }
 }
