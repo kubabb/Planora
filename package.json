@@ -1,0 +1,13 @@
+{
+  "name": "planora",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "echo no tests yet"
+  },
+  "devDependencies": {
+    "typescript": "^5.4",
+    "@types/node": "^20"
+  }
+}
