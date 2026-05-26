@@ -11,5 +11,4 @@ title = "Planora Gitleaks Config"
     '''test/''',
     '''spec/''',
     '''fixtures/''',
-    '''.github/''',
   ]

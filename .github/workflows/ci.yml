@@ -11,6 +11,7 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    if: hashFiles('package-lock.json') != ''
 
     steps:
       - name: Checkout repo
@@ -30,3 +31,12 @@ jobs:
 
       - name: Build app
         run: npm run build
+
+  skeleton-check:
+    runs-on: ubuntu-latest
+    if: hashFiles('package-lock.json') == ''
+    steps:
+      - name: Monorepo skeleton not yet initialized
+        run: |
+          echo "::notice::M1 (monorepo skeleton) not created yet — CI will activate after npm install"
+          echo "Skipping CI — no package-lock.json found"

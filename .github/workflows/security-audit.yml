@@ -49,6 +49,7 @@ jobs:
   codeql:
     name: CodeQL analysis
     runs-on: ubuntu-latest
+    if: hashFiles('package-lock.json') != ''
     permissions:
       security-events: write
     steps:
