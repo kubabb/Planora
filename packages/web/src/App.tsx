@@ -208,11 +208,11 @@ function CreatorSection() {
         <h2>kubabb</h2>
         <p>Architecting the next generation of developer tools for the void.</p>
         <div className="creator-links">
-          <a href="#" className="creator-link">
+          <a href="https://github.com/kubabb/Planora" className="creator-link">
             <GithubIcon />
             <span>GitHub Repository</span>
           </a>
-          <a href="#" className="creator-link">
+          <a href="https://github.com/kubabb" className="creator-link">
             <UserIcon />
             <span>GitHub Profile</span>
           </a>
@@ -311,11 +311,15 @@ export function App() {
         <section className="hero-section" id="home">
           <div className="hero-section__bg" />
           <div className="hero-section__noise" />
+          <div className="hero-section__grid" />
           <div className="hero-content reveal is-visible" data-reveal>
+            <div className="hero-orbit-label">Scroll to descend</div>
             <h1>
               <span>We</span>
-              <span className="hero-word-slot" key={activeWord}>
-                {activeWord}
+              <span className="hero-word-frame">
+                <span className="hero-word-slot" key={activeWord}>
+                  {activeWord}.
+                </span>
               </span>
             </h1>
           </div>

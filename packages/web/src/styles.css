@@ -23,6 +23,8 @@
 
 html {
   background: var(--bg);
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
 }
 
 body {
@@ -116,6 +118,8 @@ select {
 .creator-section {
   position: relative;
   overflow: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .hero-section {
@@ -156,11 +160,27 @@ select {
   animation: pulse-stars 8s ease-in-out infinite;
 }
 
+.hero-section__grid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 120px 120px;
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.85) 26%, rgba(0, 0, 0, 0.2) 100%);
+  opacity: 0.22;
+  animation: drift-grid 22s linear infinite;
+}
+
 .hero-content {
   position: relative;
   z-index: 1;
-  margin-top: -9vh;
-  padding: 6rem 1.5rem 10rem;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: min(100%, 62rem);
+  margin-top: -4vh;
+  padding: 6rem 1.5rem 8rem;
   text-align: center;
 }
 
@@ -168,6 +188,7 @@ select {
   display: inline-flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: baseline;
   gap: 0.32em;
   margin: 0;
   font-size: clamp(4.4rem, 10vw, 7.6rem);
@@ -178,14 +199,31 @@ select {
   text-shadow: 0 0 24px rgba(255, 255, 255, 0.04);
 }
 
+.hero-orbit-label {
+  margin-bottom: 1.4rem;
+  color: rgba(219, 227, 236, 0.6);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  animation: fade-up 760ms ease both, pulse-label 3s ease-in-out infinite;
+  animation-delay: 120ms, 0s;
+}
+
+.hero-word-frame {
+  display: inline-flex;
+  justify-content: center;
+  width: 7.4ch;
+  overflow: hidden;
+}
+
 .hero-word-slot {
   display: inline-block;
-  min-width: 3.7ch;
   animation: word-in 420ms ease;
+  will-change: transform, opacity;
 }
 
 .terminal-section {
-  min-height: 47rem;
+  min-height: 100svh;
   display: grid;
   place-items: center;
   padding: 4rem 1.5rem 5.5rem;
@@ -197,6 +235,20 @@ select {
     linear-gradient(180deg, rgba(7, 14, 20, 0.9) 0%, rgba(7, 14, 20, 0.28) 18%, rgba(7, 14, 20, 0.15) 50%, rgba(7, 14, 20, 0.86) 100%),
     url('/design/terminal-stars.png');
   animation: drift-terminal 22s ease-in-out infinite alternate;
+}
+
+.terminal-section__bg::after,
+.creator-section__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(166, 244, 255, 0.16), transparent 18%),
+    radial-gradient(circle at 74% 40%, rgba(166, 244, 255, 0.14), transparent 16%),
+    radial-gradient(circle at 60% 76%, rgba(255, 207, 122, 0.1), transparent 18%);
+  mix-blend-mode: screen;
+  opacity: 0.28;
+  animation: drift-lights 18s ease-in-out infinite alternate;
 }
 
 .glass-panel {
@@ -332,7 +384,7 @@ select {
 }
 
 .creator-section {
-  min-height: 52rem;
+  min-height: 100svh;
   display: grid;
   place-items: center;
   padding: 6rem 1.5rem;
@@ -434,6 +486,7 @@ select {
 .features-section {
   background: linear-gradient(180deg, rgba(10, 18, 24, 0.96), rgba(10, 18, 24, 1));
   padding: 4.25rem 1rem 5rem;
+  scroll-snap-align: start;
 }
 
 .features-grid {
@@ -463,6 +516,7 @@ select {
     border-color 280ms ease,
     box-shadow 280ms ease,
     background 280ms ease;
+  animation: float-card 10s ease-in-out infinite;
 }
 
 .feature-card::before {
@@ -486,6 +540,21 @@ select {
 
 .feature-card-large {
   grid-column: span 8;
+}
+
+.feature-card:nth-child(2) {
+  animation-duration: 11.5s;
+  animation-delay: -2s;
+}
+
+.feature-card:nth-child(3) {
+  animation-duration: 9.5s;
+  animation-delay: -4s;
+}
+
+.feature-card:nth-child(4) {
+  animation-duration: 12.5s;
+  animation-delay: -1s;
 }
 
 .feature-card:not(.feature-card-large) {
@@ -658,6 +727,15 @@ select {
   }
 }
 
+@keyframes drift-grid {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 120px, 0);
+  }
+}
+
 @keyframes drift-terminal {
   from {
     transform: scale(1.05) translate3d(0, 0, 0);
@@ -712,6 +790,27 @@ select {
   }
 }
 
+@keyframes pulse-label {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes drift-lights {
+  from {
+    transform: translate3d(-1.5%, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(1.5%, -1.5%, 0) scale(1.06);
+  }
+}
+
 @keyframes pulse-sun {
   0%,
   100% {
@@ -724,7 +823,28 @@ select {
   }
 }
 
+@keyframes float-card {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
 @keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-up {
   from {
     opacity: 0;
     transform: translateY(12px);
@@ -764,16 +884,20 @@ select {
   }
 
   .hero-content {
-    margin-top: -5vh;
+    margin-top: -3vh;
+  }
+
+  .hero-word-frame {
+    width: 6.5ch;
   }
 
   .terminal-section {
-    min-height: 38rem;
+    min-height: 100svh;
     padding-top: 2.5rem;
   }
 
   .creator-section {
-    min-height: 43rem;
+    min-height: 100svh;
   }
 
   .features-grid {
@@ -829,6 +953,16 @@ select {
 
   .hero-content h1 {
     font-size: clamp(3rem, 16vw, 4.4rem);
+  }
+
+  .hero-orbit-label {
+    margin-bottom: 1rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+  }
+
+  .hero-word-frame {
+    width: 6.2ch;
   }
 
   .terminal-shell__body {
