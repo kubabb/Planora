@@ -11,32 +11,38 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('package-lock.json') != '' }}
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Check if monorepo initialized
+        id: guard
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
+        if: steps.guard.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
+        if: steps.guard.outputs.ready == 'true'
         run: npm ci
 
       - name: Run tests
+        if: steps.guard.outputs.ready == 'true'
         run: npm test
 
       - name: Build app
+        if: steps.guard.outputs.ready == 'true'
         run: npm run build
 
-  skeleton-check:
-    runs-on: ubuntu-latest
-    if: ${{ hashFiles('package-lock.json') == '' }}
-    steps:
-      - name: Monorepo skeleton not yet initialized
-        run: |
-          echo "::notice::M1 (monorepo skeleton) not created yet — CI will activate after npm install"
-          echo "Skipping CI — no package-lock.json found"
+      - name: Skeleton notice
+        if: steps.guard.outputs.ready == 'false'
+        run: echo "::notice::M1 not created yet — CI will activate after monorepo skeleton"

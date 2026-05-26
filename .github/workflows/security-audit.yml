@@ -49,28 +49,44 @@ jobs:
   codeql:
     name: CodeQL analysis
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('package-lock.json') != '' }}
     permissions:
       security-events: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Check if monorepo initialized
+        id: guard
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
+        if: steps.guard.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Initialize CodeQL
+        if: steps.guard.outputs.ready == 'true'
         uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
 
       - name: Build
+        if: steps.guard.outputs.ready == 'true'
         run: npm ci && npm run build
 
       - name: Run CodeQL
+        if: steps.guard.outputs.ready == 'true'
         uses: github/codeql-action/analyze@v3
+
+      - name: Skip notice
+        if: steps.guard.outputs.ready == 'false'
+        run: echo "::notice::No package-lock.json — CodeQL skipped"
 
   sast:
     name: SAST (Semgrep)
