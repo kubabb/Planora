@@ -1,5 +1,7 @@
 # Planora — Kolejność Implementacji (Build Order)
 
+> Status: parts of this document are historical. When this file mentions Hermes-first flows, Hermes-specific views, or `HERMES_SETUP.md`, interpret them through `plans/08_OWN_AGENT.md`: Planora standalone first, Hermes optional later.
+
 ## Zasady
 
 1. **Każdy krok produkuje działający, testowalny artifact.**

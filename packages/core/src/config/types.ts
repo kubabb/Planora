@@ -1,6 +1,6 @@
 // Planora config types — user config stored in ~/.planora/config.json
 
-import type { AiProvider } from '../ai/types';
+import type { AiProvider } from '../ai/types.js';
 
 export interface PlanoraConfig {
   version: 1;

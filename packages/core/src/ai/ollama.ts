@@ -2,8 +2,8 @@
 // Default: http://localhost:11434/v1
 // No API key needed (local).
 
-import type { AiConfig } from './types';
-import { OpenAICompatibleClient } from './openai-compatible';
+import type { AiConfig } from './types.js';
+import { OpenAICompatibleClient } from './openai-compatible.js';
 
 export class OllamaClient extends OpenAICompatibleClient {
   protected override baseUrl: string;

@@ -1,8 +1,8 @@
 // OpenRouter provider — https://openrouter.ai
 // API key prefix: sk-or-v1-...
 
-import type { AiConfig } from './types';
-import { OpenAICompatibleClient } from './openai-compatible';
+import type { AiConfig } from './types.js';
+import { OpenAICompatibleClient } from './openai-compatible.js';
 
 export class OpenRouterClient extends OpenAICompatibleClient {
   protected override baseUrl = 'https://openrouter.ai/api/v1';

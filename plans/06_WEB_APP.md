@@ -1,5 +1,7 @@
 # Planora — Web App Design (React + Vite)
 
+> Status: parts of this document are older than the own-agent direction. Read Hermes-specific screens as historical placeholders; the active product direction is Agent-centric, with Hermes only as an optional addon.
+
 ## Overview
 
 Lokalna aplikacja React na `http://localhost:4173`. Używa Vite jako build tool, React Router v6 do routingu, markmap-js do map myśli, Mermaid.js do diagramów.

@@ -3,8 +3,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import type { PlanoraConfig } from './types';
-import { DEFAULT_PREFERENCES } from './types';
+import type { PlanoraConfig } from './types.js';
+import { DEFAULT_PREFERENCES } from './types.js';
 
 const PLANORA_DIR = path.join(os.homedir(), '.planora');
 const CONFIG_PATH = path.join(PLANORA_DIR, 'config.json');

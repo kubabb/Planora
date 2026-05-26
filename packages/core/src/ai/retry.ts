@@ -1,6 +1,6 @@
 // Exponential backoff retry for AiClient calls
 
-import { AiError, RateLimitError, ServerError, TimeoutError } from './errors';
+import { AiError, RateLimitError, ServerError, TimeoutError } from './errors.js';
 
 export interface RetryConfig {
   maxAttempts?: number;

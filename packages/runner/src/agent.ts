@@ -2,12 +2,12 @@
 // Uses AiClient for LLM calls, manages sessions and tools.
 
 import type { AiClient, AiResponse, AiToolCall } from '@planora/core';
-import { AgentSession } from './session';
-import type { AgentConfig } from './config';
-import { DEFAULT_AGENT_CONFIG } from './config';
-import { getTool, getToolSchemas } from './tools/index';
+import { AgentSession } from './session.js';
+import type { AgentConfig } from './config.js';
+import { DEFAULT_AGENT_CONFIG } from './config.js';
+import { getTool, getToolSchemas } from './tools/index.js';
 import type { AgentRun, AgentRunStatus } from '@planora/core';
-import { generateId } from './utils';
+import { generateId } from './utils.js';
 
 export interface WorkflowInput {
   projectName: string;

@@ -7,7 +7,7 @@ import type {
   AiResponse,
   AiStreamEvent,
   AiTool,
-} from './types';
+} from './types.js';
 
 /**
  * AiClient — bezpośredni klient LLM.

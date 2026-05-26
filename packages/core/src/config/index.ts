@@ -5,14 +5,14 @@ export type {
   ProviderConfig,
   UserPreferences,
   SafeConfig,
-} from './types';
+} from './types.js';
 
 export {
   DEFAULT_PREFERENCES,
   DEFAULT_PROVIDER_KEY,
   maskApiKey,
   redactConfig,
-} from './types';
+} from './types.js';
 
 export {
   createDefaultConfig,
@@ -22,7 +22,7 @@ export {
   getActiveProvider,
   getConfigPath,
   ensureConfigDir,
-} from './loader';
+} from './loader.js';
 
-export type { ConfigValidationResult } from './validator';
-export { validateConfig, validateAndTest } from './validator';
+export type { ConfigValidationResult } from './validator.js';
+export { validateConfig, validateAndTest } from './validator.js';

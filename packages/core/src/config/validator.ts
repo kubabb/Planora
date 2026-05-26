@@ -1,10 +1,10 @@
 // Config validator — validates Planora config and tests provider connection
 
-import type { AiClient } from '../ai/client';
-import type { AiConfig } from '../ai/types';
-import { createAiClient } from '../ai/factory';
-import type { PlanoraConfig } from './types';
-import { getActiveProvider } from './loader';
+import type { AiClient } from '../ai/client.js';
+import type { AiConfig } from '../ai/types.js';
+import { createAiClient } from '../ai/factory.js';
+import type { PlanoraConfig } from './types.js';
+import { getActiveProvider } from './loader.js';
 
 export interface ConfigValidationResult {
   valid: boolean;

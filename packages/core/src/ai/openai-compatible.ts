@@ -2,7 +2,7 @@
 // All providers (OpenRouter, OpenAI, Ollama, OpenCode) extend this.
 // Uses raw fetch() — zero dependencies.
 
-import type { AiClient } from './client';
+import type { AiClient } from './client.js';
 import type {
   AiConfig,
   AiConfigOverrides,
@@ -12,7 +12,7 @@ import type {
   AiStreamEvent,
   AiTool,
   AiUsage,
-} from './types';
+} from './types.js';
 import {
   AiError,
   AuthError,
@@ -20,8 +20,8 @@ import {
   RateLimitError,
   ServerError,
   TimeoutError,
-} from './errors';
-import { withRetry } from './retry';
+} from './errors.js';
+import { withRetry } from './retry.js';
 
 const DEFAULT_TIMEOUT = 120_000;
 

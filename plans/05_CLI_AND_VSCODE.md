@@ -1,5 +1,7 @@
 # Planora — CLI & VS Code Extension Spec
 
+> Status: parts of this document predate the own-agent direction. The current product path is `planora config` -> provider API key -> `planora plan --ai` without Hermes as a requirement. Hermes references below are optional or historical unless explicitly marked otherwise.
+
 ## CLI Commands
 
 ### `planora init`

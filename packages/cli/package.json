@@ -15,7 +15,13 @@
   "exports": {
     ".": "./dist/index.js"
   },
+  "dependencies": {
+    "@planora/core": "*",
+    "@planora/runner": "*",
+    "commander": "^12.0.0"
+  },
   "devDependencies": {
-    "typescript": "^5.4"
+    "typescript": "^5.4",
+    "@types/node": "^20"
   }
 }

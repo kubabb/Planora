@@ -1,13 +1,13 @@
 // AiClient factory — creates the right client based on provider
 
-import type { AiClient } from './client';
-import type { AiConfig } from './types';
-import { OpenRouterClient } from './openrouter';
-import { OpenAIClient } from './openai';
-import { OllamaClient } from './ollama';
-import { OpenCodeClient } from './opencode';
-import { OpenAICompatibleClient } from './openai-compatible';
-import { AiError } from './errors';
+import type { AiClient } from './client.js';
+import type { AiConfig } from './types.js';
+import { OpenRouterClient } from './openrouter.js';
+import { OpenAIClient } from './openai.js';
+import { OllamaClient } from './ollama.js';
+import { OpenCodeClient } from './opencode.js';
+import { OpenAICompatibleClient } from './openai-compatible.js';
+import { AiError } from './errors.js';
 
 /**
  * createAiClient — factory for AiClient instances.
