@@ -404,6 +404,8 @@ function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) 
 }
 
 function CreatorSection() {
+  const typedCreatorName = useTypingCycle(['kubabb'], 115, 1900, 58);
+
   return (
     <section className="creator-section" id="about-us">
       <div className="creator-section__bg" />
@@ -412,12 +414,26 @@ function CreatorSection() {
           <span className="eyebrow">About us</span>
         </div>
         <h2>
-          Built by <span>kubabb</span>
+          <span>Built by</span>
+          <span className="creator-name">
+            <span>{typedCreatorName}</span>
+            <span className="creator-name__cursor" aria-hidden="true" />
+          </span>
         </h2>
         <p className="creator-lead">
           Planora is a focused planning layer for hackathon teams, MVP builders, and existing
           projects that need a clearer next step.
         </p>
+        <dl className="creator-details">
+          <div>
+            <dt>Focus</dt>
+            <dd>project planning, roadmap shaping, repo-aware next steps</dd>
+          </div>
+          <div>
+            <dt>Output</dt>
+            <dd>plain markdown plans, diagrams, mind maps, and team-ready tasks</dd>
+          </div>
+        </dl>
         <div className="creator-links">
           <a href="https://github.com/kubabb/Planora" className="creator-link">
             <GithubIcon />
@@ -523,6 +539,56 @@ export function App() {
     for (const element of elements) observer.observe(element);
 
     return () => observer.disconnect();
+  }, [isDocumentationPage]);
+
+  useEffect(() => {
+    if (isDocumentationPage) return;
+
+    let isSnapping = false;
+    let resetHandle = 0;
+
+    const getSections = () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '#home, #documentation, #about-us, .features-section, #blog',
+        ),
+      );
+
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) < 24 || isSnapping) return;
+
+      const sections = getSections();
+      if (sections.length === 0) return;
+
+      const viewportCenter = window.innerHeight / 2;
+      const currentIndex = sections.reduce((closestIndex, section, index) => {
+        const rect = section.getBoundingClientRect();
+        const distance = Math.abs(rect.top + rect.height / 2 - viewportCenter);
+        const closestRect = sections[closestIndex]!.getBoundingClientRect();
+        const closestDistance = Math.abs(closestRect.top + closestRect.height / 2 - viewportCenter);
+        return distance < closestDistance ? index : closestIndex;
+      }, 0);
+
+      const direction = event.deltaY > 0 ? 1 : -1;
+      const nextIndex = Math.min(Math.max(currentIndex + direction, 0), sections.length - 1);
+      if (nextIndex === currentIndex) return;
+
+      event.preventDefault();
+      isSnapping = true;
+      sections[nextIndex]!.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      window.clearTimeout(resetHandle);
+      resetHandle = window.setTimeout(() => {
+        isSnapping = false;
+      }, 760);
+    };
+
+    window.addEventListener('wheel', onWheel, { passive: false });
+
+    return () => {
+      window.clearTimeout(resetHandle);
+      window.removeEventListener('wheel', onWheel);
+    };
   }, [isDocumentationPage]);
 
   return (
