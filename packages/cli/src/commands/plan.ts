@@ -84,6 +84,7 @@ async function generateStatic(
   fs.writeFileSync(path.join(projectDir, 'planora.json'), planoraJson, 'utf-8');
   console.log(`  ✓ planora.json`);
   console.log(`\n✓ Plan wygenerowany w: ${projectDir}/\n`);
+  console.log(`  Otwórz dashboard: planora web\n`);
   console.log(`  Użyj --ai aby wygenerować inteligentny plan z AI:\n  planora plan -n "${name}" --ai\n`);
 }
 
@@ -119,13 +120,24 @@ async function generateWithAi(
     saveRun(result, name, 'plan');
 
     if (result.status === 'success') {
+      const projectId = crypto.randomUUID();
+      const projectDir = path.join(outputDir, name);
+      try {
+        const storage = new SqliteStorage();
+        storage.createUser({ id: 'local', name: 'local', profile: 'local' });
+        storage.createProject({
+          id: projectId, name, description, userId: 'local', stack, basePath: projectDir,
+        });
+        storage.close();
+      } catch { /* optional */ }
+
       console.log('✓ Plan wygenerowany!\n');
       console.log(`  Kroki:  ${result.stepsUsed}\n  Tokeny: ${result.tokensUsed}`);
       if (result.files.length > 0) {
         console.log(`  Pliki:`);
         for (const f of result.files) console.log(`    - ${f}`);
       }
-      console.log('');
+      console.log(`\n  Otwórz dashboard: planora web\n`);
     } else {
       console.log(`❌ Błąd: ${result.error}\n`);
     }

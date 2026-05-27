@@ -1,13 +1,15 @@
 // planora web — launch the Planora web dashboard
-// Serves built assets from packages/web/dist (production) or runs Vite dev server (--dev)
+// Serves dashboard assets and provides local API for projects/settings
 
 import { Command } from 'commander';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { join, dirname, extname, resolve as pathResolve } from 'node:path';
+import { homedir } from 'node:os';
+import { createRequire } from 'node:module';
+import { SqliteStorage } from '@planora/core';
 
-// MIME types for static file serving
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'application/javascript',
@@ -23,11 +25,119 @@ const MIME_TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
+  '.md': 'text/markdown',
+  '.txt': 'text/plain',
 };
 
 function getMimeType(filePath: string): string {
   const ext = extname(filePath).toLowerCase();
   return MIME_TYPES[ext] || 'application/octet-stream';
+}
+
+function resolveWebDist(): string {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkgJson = require.resolve('@planora/web/package.json');
+    return join(dirname(pkgJson), 'dist');
+  } catch {
+    // Dev fallback from packages/cli/dist/commands/web.js -> ../../../web/dist
+    return join(import.meta.dirname, '..', '..', '..', 'web', 'dist');
+  }
+}
+
+function getSettings() {
+  const configPath = join(homedir(), '.planora', 'config.json');
+  try {
+    const raw = readFileSync(configPath, 'utf-8');
+    const config = JSON.parse(raw);
+    const providers = config.providers || {};
+    const defaultKey = providers.default;
+    const active = defaultKey ? providers[defaultKey] : Object.values(providers)[0];
+    const apiKey = active?.apiKey || '';
+    const maskedKey = apiKey.length > 4 ? '****' + apiKey.slice(-4) : '';
+    return {
+      provider: defaultKey || '',
+      model: active?.model || '',
+      apiKey: maskedKey,
+      databasePath: join(homedir(), '.planora', 'planora.db'),
+      qdrantUrl: config.qdrantUrl,
+    };
+  } catch {
+    return {
+      provider: '',
+      model: '',
+      apiKey: '',
+      databasePath: join(homedir(), '.planora', 'planora.db'),
+    };
+  }
+}
+
+async function handleApiRequest(
+  pathname: string,
+): Promise<{ status: number; body: string; headers?: Record<string, string> }> {
+  // /api/projects
+  if (pathname === '/api/projects') {
+    try {
+      const storage = new SqliteStorage();
+      const projects = storage.listProjects();
+      storage.close();
+      return { status: 200, body: JSON.stringify(projects) };
+    } catch (err) {
+      return { status: 500, body: JSON.stringify({ error: 'Database error', detail: String(err) }) };
+    }
+  }
+
+  // /api/projects/:id
+  const projectMatch = pathname.match(/^\/api\/projects\/([^\/]+)$/);
+  if (projectMatch) {
+    try {
+      const storage = new SqliteStorage();
+      const project = storage.getProject(projectMatch[1]);
+      storage.close();
+      if (!project) {
+        return { status: 404, body: JSON.stringify({ error: 'Project not found' }) };
+      }
+      return { status: 200, body: JSON.stringify(project) };
+    } catch (err) {
+      return { status: 500, body: JSON.stringify({ error: 'Database error', detail: String(err) }) };
+    }
+  }
+
+  // /api/projects/:id/file/:filename
+  const fileMatch = pathname.match(/^\/api\/projects\/([^\/]+)\/file\/(.+)$/);
+  if (fileMatch) {
+    try {
+      const storage = new SqliteStorage();
+      const project = storage.getProject(fileMatch[1]) as { base_path: string } | null;
+      storage.close();
+      if (!project) {
+        return { status: 404, body: JSON.stringify({ error: 'Project not found' }) };
+      }
+
+      const basePath = pathResolve(project.base_path);
+      const filePath = pathResolve(join(project.base_path, fileMatch[2]));
+
+      if (!filePath.startsWith(basePath)) {
+        return { status: 403, body: JSON.stringify({ error: 'Forbidden' }) };
+      }
+      if (!existsSync(filePath) || statSync(filePath).isDirectory()) {
+        return { status: 404, body: JSON.stringify({ error: 'File not found' }) };
+      }
+
+      const content = readFileSync(filePath, 'utf-8');
+      return { status: 200, body: content, headers: { 'Content-Type': getMimeType(filePath) } };
+    } catch (err) {
+      return { status: 500, body: JSON.stringify({ error: 'File read error', detail: String(err) }) };
+    }
+  }
+
+  // /api/settings
+  if (pathname === '/api/settings') {
+    const settings = getSettings();
+    return { status: 200, body: JSON.stringify(settings) };
+  }
+
+  return { status: 404, body: JSON.stringify({ error: 'Not found' }) };
 }
 
 export const webCommand = new Command('web')
@@ -36,84 +146,95 @@ export const webCommand = new Command('web')
   .option('--dev', 'Run Vite dev server instead of serving built assets')
   .action((options: { port: string; dev?: boolean }) => {
     const port = parseInt(options.port, 10);
-    const webPackageDir = join(import.meta.dirname, '..', '..', 'web');
-    const distDir = join(webPackageDir, 'dist');
 
     if (options.dev) {
-      // Dev mode: spawn Vite dev server
-      console.log(`\n🚀 Starting Planora web in DEV mode...`);
+      const webPackageDir = dirname(resolveWebDist());
+      console.log('\n🚀 Starting Planora web in DEV mode...');
       console.log(`   Vite dev server will start on http://localhost:${port}\n`);
-      
+
       const child = spawn('npx', ['vite', '--port', String(port)], {
         cwd: webPackageDir,
         stdio: 'inherit',
         shell: true,
+        env: { ...process.env, PLANORA_DASHBOARD_DEV: '1' },
       });
-      
+
       child.on('exit', (code) => {
         process.exit(code ?? 0);
       });
-    } else {
-      // Production mode: serve static files from dist
-      if (!existsSync(distDir)) {
-        console.error(`\n❌ Error: Web app not built yet.`);
-        console.error(`   Expected dist directory: ${distDir}`);
-        console.error(`\n   To fix this, run:`);
-        console.error(`   $ npm run build --workspace @planora/web\n`);
-        process.exit(1);
-      }
-
-      const indexHtmlPath = join(distDir, 'index.html');
-      if (!existsSync(indexHtmlPath)) {
-        console.error(`\n❌ Error: index.html not found in dist directory.`);
-        console.error(`   Expected: ${indexHtmlPath}\n`);
-        process.exit(1);
-      }
-
-      const indexHtml = readFileSync(indexHtmlPath, 'utf-8');
-
-      const server = createServer((req, res) => {
-        const url = new URL(req.url || '/', `http://localhost:${port}`);
-        const pathname = url.pathname;
-
-        // Try to serve the requested file
-        const filePath = join(distDir, pathname);
-
-        // Security: prevent directory traversal
-        if (!filePath.startsWith(distDir)) {
-          res.writeHead(403, { 'Content-Type': 'text/plain' });
-          res.end('Forbidden');
-          return;
-        }
-
-        // Check if file exists and is not a directory
-        if (existsSync(filePath) && statSync(filePath).isFile()) {
-          const content = readFileSync(filePath);
-          const mimeType = getMimeType(filePath);
-          res.writeHead(200, { 'Content-Type': mimeType });
-          res.end(content);
-        } else {
-          // SPA fallback: serve index.html for all routes (client-side routing)
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(indexHtml);
-        }
-      });
-
-      server.listen(port, () => {
-        console.log(`\n📊 Planora Dashboard`);
-        console.log(`   Local:   http://localhost:${port}`);
-        console.log(`   Network: http://0.0.0.0:${port}\n`);
-        console.log(`   Press Ctrl+C to stop.\n`);
-      });
-
-      server.on('error', (err) => {
-        if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
-          console.error(`\n❌ Error: Port ${port} is already in use.`);
-          console.error(`   Try a different port: planora web --port ${port + 1}\n`);
-        } else {
-          console.error(`\n❌ Server error: ${err.message}\n`);
-        }
-        process.exit(1);
-      });
+      return;
     }
+
+    const distDir = resolveWebDist();
+    const dashboardHtmlPath = join(distDir, 'dashboard.html');
+
+    if (!existsSync(distDir)) {
+      console.error(`\n❌ Error: Web app not built yet.`);
+      console.error(`   Expected dist directory: ${distDir}`);
+      console.error(`\n   To fix this, run:`);
+      console.error(`   $ npm run build --workspace @planora/web\n`);
+      process.exit(1);
+    }
+
+    if (!existsSync(dashboardHtmlPath)) {
+      console.error(`\n❌ Error: dashboard.html not found in dist directory.`);
+      console.error(`   Expected: ${dashboardHtmlPath}\n`);
+      process.exit(1);
+    }
+
+    const dashboardHtml = readFileSync(dashboardHtmlPath, 'utf-8');
+
+    const server = createServer(async (req, res) => {
+      const url = new URL(req.url || '/', `http://localhost:${port}`);
+      const pathname = url.pathname;
+
+      // API requests
+      if (pathname.startsWith('/api/')) {
+        try {
+          const result = await handleApiRequest(pathname);
+          res.writeHead(result.status, {
+            'Content-Type': result.headers?.['Content-Type'] || 'application/json',
+            ...result.headers,
+          });
+          res.end(result.body);
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Server error' }));
+        }
+        return;
+      }
+
+      // Static files
+      const filePath = join(distDir, pathname === '/' ? 'dashboard.html' : pathname);
+
+      if (existsSync(filePath) && statSync(filePath).isFile()) {
+        const content = readFileSync(filePath);
+        const mimeType = getMimeType(filePath);
+        res.writeHead(200, { 'Content-Type': mimeType });
+        res.end(content);
+        return;
+      }
+
+      // SPA fallback for dashboard routes
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(dashboardHtml);
+    });
+
+    server.listen(port, () => {
+      console.log(`\n📊 Planora Dashboard`);
+      console.log(`   Local:   http://localhost:${port}`);
+      console.log(`   Network: http://0.0.0.0:${port}\n`);
+      console.log(`   Open dashboard: planora web\n`);
+      console.log(`   Press Ctrl+C to stop.\n`);
+    });
+
+    server.on('error', (err) => {
+      if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
+        console.error(`\n❌ Error: Port ${port} is already in use.`);
+        console.error(`   Try a different port: planora web --port ${port + 1}\n`);
+      } else {
+        console.error(`\n❌ Server error: ${err.message}\n`);
+      }
+      process.exit(1);
+    });
   });
