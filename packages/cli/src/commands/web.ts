@@ -5,7 +5,7 @@ import { Command } from 'commander';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { join, dirname, extname, resolve as pathResolve } from 'node:path';
+import { join, dirname, extname, relative, resolve as pathResolve } from 'node:path';
 import { homedir } from 'node:os';
 import { createRequire } from 'node:module';
 import { SqliteStorage } from '@planora/core';
@@ -116,8 +116,9 @@ async function handleApiRequest(
 
       const basePath = pathResolve(project.base_path);
       const filePath = pathResolve(join(project.base_path, fileMatch[2]));
+      const relativePath = relative(basePath, filePath);
 
-      if (!filePath.startsWith(basePath)) {
+      if (relativePath.startsWith('..') || pathResolve(relativePath) === relativePath) {
         return { status: 403, body: JSON.stringify({ error: 'Forbidden' }) };
       }
       if (!existsSync(filePath) || statSync(filePath).isDirectory()) {

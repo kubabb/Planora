@@ -24,7 +24,7 @@ export function GraphsView() {
           div.className = 'mermaid-diagram';
           container.appendChild(div);
 
-          const mermaidId = `mermaid-${i}`;
+          const mermaidId = `mermaid-${id}-${Date.now()}-${i}`;
           const { svg } = await mermaid.render(mermaidId, code);
           div.innerHTML = svg;
         }
