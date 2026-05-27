@@ -8,7 +8,7 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, extname, relative, resolve as pathResolve } from 'node:path';
 import { homedir } from 'node:os';
 import { createRequire } from 'node:module';
-import { SqliteStorage } from '@planora/core';
+import { SqliteStorage, maskApiKey } from '@planora/core';
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
@@ -54,7 +54,7 @@ function getSettings() {
     const defaultKey = providers.default;
     const active = defaultKey ? providers[defaultKey] : Object.values(providers)[0];
     const apiKey = active?.apiKey || '';
-    const maskedKey = apiKey.length > 4 ? '****' + apiKey.slice(-4) : '';
+    const maskedKey = maskApiKey(apiKey);
     return {
       provider: defaultKey || '',
       model: active?.model || '',

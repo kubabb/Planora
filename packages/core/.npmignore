@@ -1,3 +1,6 @@
+# npm publish: tylko skompilowane pliki dist/
+# .gitignore blokuje dist/, .npmignore NIE
+
 src/
 tests/
 tsconfig.json

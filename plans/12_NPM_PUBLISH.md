@@ -1,7 +1,8 @@
 # Plan — Publikacja Planora na npm
 
-> Status: plan
+> Status: zrobione (T1-T7), gotowe do `npm publish`
 > Data: 2026-05-27
+> Commit: `feat(npm): przygotuj pakiety do publikacji na npm`
 
 ## Cel
 
