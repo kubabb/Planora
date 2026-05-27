@@ -68,6 +68,9 @@ function validateCommand(command: string): void {
   }
 }
 
+// Eksport do testów
+export { validateCommand, ALLOWED_COMMANDS, BLOCKED_PATTERNS };
+
 // ─── Security: Path traversal prevention ─────────────
 
 /** Blokuje path traversal — ścieżka nie może zawierać `..` ani być absolutna. */
@@ -96,6 +99,9 @@ function validatePath(userPath: string): string {
 
   return p;
 }
+
+// Eksport do testów
+export { validatePath };
 
 // ─── file_read ────────────────────────────────────────
 

@@ -43,6 +43,16 @@ export class QdrantMemory {
       this.aiClient = aiClient || null;
       return;
     }
+
+    // Security: sprawdź uprawnienia pliku (powinno być 600)
+    try {
+      const stat = fs.statSync(configPath);
+      const mode = stat.mode & 0o777;
+      if (mode !== 0o600) {
+        console.warn(`[Planora] ⚠ qdrant-config.json ma uprawnienia ${mode.toString(8)} — zalecane 600 (chmod 600 ~/.planora/qdrant-config.json)`);
+      }
+    } catch { /* non-critical */ }
+
     const raw = fs.readFileSync(configPath, 'utf-8');
     const cfg = JSON.parse(raw) as QdrantConfig;
     this.url = cfg.url.replace(/\/$/, '');
