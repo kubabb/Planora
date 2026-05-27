@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { sections as docSections } from './docs-sections';
 
 type TerminalEntry = {
   kind: 'command' | 'response';
@@ -256,34 +257,8 @@ function TerminalSection() {
 }
 
 function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) => void }) {
-  const sections = [
-    {
-      id: 'overview',
-      title: 'Overview',
-      body:
-        'Planora is a markdown-first planning system for software teams. It turns project context into structured plans, mind maps, architecture diagrams, and a local dashboard without making Hermes a product dependency.',
-    },
-    {
-      id: 'workflow',
-      title: 'User flow',
-      body:
-        'The first-run path is intentionally short: configure a provider, initialize a workspace, generate the plan pack, then review everything locally in the web app or in VS Code.',
-      code: ['planora config', 'planora init', 'planora plan --ai', 'planora web'],
-    },
-    {
-      id: 'generated-files',
-      title: 'Generated files',
-      body:
-        'Markdown is the source of truth. Every generated artifact is git-friendly, readable in plain text, and available to the CLI, the extension, and the local web interface.',
-      items: [
-        ['PROJECT_PLAN.md', 'overview, goals, MVP, stack, milestones'],
-        ['ROADMAP.md', 'phased delivery plan and sequencing'],
-        ['MINDMAP.md', 'hierarchical outline for markmap rendering'],
-        ['ARCHITECTURE.md', 'Mermaid-based system and data-flow diagrams'],
-        ['AGENT_SETUP.md', 'provider, model, and workflow notes'],
-        ['planora.json', 'project metadata and machine-readable settings'],
-      ],
-    },
+  /*
+  const legacySections = [
     {
       id: 'architecture',
       title: 'Architecture',
@@ -325,6 +300,8 @@ function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) 
     },
   ];
 
+  */
+
   return (
     <div className="docs-page">
       <section className="docs-sections" id="docs-sections">
@@ -335,7 +312,7 @@ function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) 
               <p>Standalone planning docs for the actual product direction.</p>
             </div>
             <nav className="docs-sidebar__nav" aria-label="Documentation sections">
-              {sections.map((section) => (
+              {docSections.map((section) => (
                 <a key={section.id} href={`#${section.id}`}>
                   {section.title}
                 </a>
@@ -357,12 +334,11 @@ function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) 
               <span className="eyebrow">Documentation</span>
               <h1>Planora documentation</h1>
               <p>
-                Planora is a markdown-first planning tool for new builds and existing repositories.
-                It runs with its own agent, takes a provider key such as OpenRouter, and generates
-                readable project artifacts locally.
+                A practical guide to installing Planora, configuring the agent, generating planning
+                artifacts, and opening the local dashboard after a project has been planned.
               </p>
             </article>
-            {sections.map((section) => (
+            {docSections.map((section) => (
               <article key={section.id} id={section.id} className="docs-article reveal" data-reveal>
                 <span className="eyebrow">{section.title}</span>
                 <h2>{section.title}</h2>
@@ -390,7 +366,7 @@ function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) 
           <aside className="docs-sidebar docs-sidebar-right reveal is-visible" data-reveal>
             <span className="eyebrow">On this page</span>
             <nav className="docs-sidebar__nav docs-sidebar__nav-quiet" aria-label="Table of contents">
-              {sections.map((section) => (
+              {docSections.map((section) => (
                 <a key={section.id} href={`#${section.id}`}>
                   {section.title}
                 </a>
@@ -522,6 +498,13 @@ export function App() {
   );
   const { pathname, navigate } = usePathname();
   const isDocumentationPage = pathname === '/documentation';
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
 
   useEffect(() => {
     const elements = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));

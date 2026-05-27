@@ -24,7 +24,6 @@
 html {
   background: var(--bg);
   scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
 }
 
 body {
@@ -63,7 +62,6 @@ select {
 
 main > section,
 .footer {
-  scroll-snap-align: start;
   scroll-margin-top: 0;
 }
 
