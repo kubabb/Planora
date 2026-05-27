@@ -525,53 +525,14 @@ export function App() {
   }, [isDocumentationPage]);
 
   useEffect(() => {
-    if (isDocumentationPage) return;
-
-    let isSnapping = false;
-    let resetHandle = 0;
-
-    const getSections = () =>
-      Array.from(
-        document.querySelectorAll<HTMLElement>(
-          '#home, #documentation, #about-us, .features-section, #blog',
-        ),
-      );
-
-    const onWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) < 24 || isSnapping) return;
-
-      const sections = getSections();
-      if (sections.length === 0) return;
-
-      const viewportCenter = window.innerHeight / 2;
-      const currentIndex = sections.reduce((closestIndex, section, index) => {
-        const rect = section.getBoundingClientRect();
-        const distance = Math.abs(rect.top + rect.height / 2 - viewportCenter);
-        const closestRect = sections[closestIndex]!.getBoundingClientRect();
-        const closestDistance = Math.abs(closestRect.top + closestRect.height / 2 - viewportCenter);
-        return distance < closestDistance ? index : closestIndex;
-      }, 0);
-
-      const direction = event.deltaY > 0 ? 1 : -1;
-      const nextIndex = Math.min(Math.max(currentIndex + direction, 0), sections.length - 1);
-      if (nextIndex === currentIndex) return;
-
-      event.preventDefault();
-      isSnapping = true;
-      sections[nextIndex]!.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-      window.clearTimeout(resetHandle);
-      resetHandle = window.setTimeout(() => {
-        isSnapping = false;
-      }, 760);
-    };
-
-    window.addEventListener('wheel', onWheel, { passive: false });
-
-    return () => {
-      window.clearTimeout(resetHandle);
-      window.removeEventListener('wheel', onWheel);
-    };
+    // CSS scroll-snap toggle: snap on home, normal scroll on /documentation
+    const root = document.documentElement;
+    if (isDocumentationPage) {
+      root.classList.remove('snap-scroll');
+    } else {
+      root.classList.add('snap-scroll');
+    }
+    return () => root.classList.remove('snap-scroll');
   }, [isDocumentationPage]);
 
   return (

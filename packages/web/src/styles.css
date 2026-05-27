@@ -26,6 +26,14 @@ html {
   scroll-behavior: smooth;
 }
 
+html.snap-scroll {
+  scroll-snap-type: y mandatory;
+}
+
+html.snap-scroll body {
+  overflow-y: auto;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -63,6 +71,12 @@ select {
 main > section,
 .footer {
   scroll-margin-top: 0;
+}
+
+html.snap-scroll main > section,
+html.snap-scroll .footer {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .reveal {
