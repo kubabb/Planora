@@ -34,7 +34,7 @@ async function showStatus(): Promise<void> {
   console.log('\n🤖 Planora Agent Status\n');
   console.log(`  Provider:  ${providerKey}`);
   console.log(`  Model:     ${safeProvider.model}`);
-  console.log(`  API Key:   ${safeProvider.apiKey}`);
+  console.log('  API Key:   configured (redacted)');
   if (safeProvider.baseUrl) {
     console.log(`  URL:       ${safeProvider.baseUrl}`);
   }
