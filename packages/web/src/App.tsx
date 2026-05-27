@@ -363,16 +363,6 @@ function DocumentationPage({ onNavigateHome }: { onNavigateHome: (href: string) 
               </article>
             ))}
           </div>
-          <aside className="docs-sidebar docs-sidebar-right reveal is-visible" data-reveal>
-            <span className="eyebrow">On this page</span>
-            <nav className="docs-sidebar__nav docs-sidebar__nav-quiet" aria-label="Table of contents">
-              {docSections.map((section) => (
-                <a key={section.id} href={`#${section.id}`}>
-                  {section.title}
-                </a>
-              ))}
-            </nav>
-          </aside>
         </div>
       </section>
     </div>

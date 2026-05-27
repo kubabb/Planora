@@ -279,7 +279,7 @@ html.snap-scroll .footer {
 
 .docs-layout {
   display: grid;
-  grid-template-columns: 15rem minmax(0, 46rem) 14rem;
+  grid-template-columns: 15rem minmax(0, 1fr);
   gap: 0;
   width: min(100%, 96rem);
   margin: 0 auto;
@@ -292,11 +292,6 @@ html.snap-scroll .footer {
   min-height: calc(100vh - 4.8rem);
   padding: 1.4rem 1rem;
   border-right: 1px solid var(--line-soft);
-}
-
-.docs-sidebar-right {
-  border-right: 0;
-  border-left: 1px solid var(--line-soft);
 }
 
 .docs-sidebar__brand p {
@@ -324,11 +319,6 @@ html.snap-scroll .footer {
 .docs-sidebar__nav a:hover {
   color: #fff;
   opacity: 1;
-}
-
-.docs-sidebar__nav-quiet a {
-  color: rgba(219, 227, 236, 0.56);
-  font-size: 0.8rem;
 }
 
 .docs-sidebar__back {
@@ -1428,10 +1418,6 @@ html.snap-scroll .footer {
 
   .docs-sidebar {
     min-height: auto;
-  }
-
-  .docs-sidebar-right {
-    display: none;
   }
 
   .docs-definition-row {
