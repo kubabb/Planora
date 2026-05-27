@@ -1,10 +1,15 @@
 {
   "name": "@planora/web",
   "version": "0.1.0",
-  "private": true,
+  "description": "Planora web dashboard — React app with mind maps and architecture diagrams",
+  "license": "MIT",
+  "author": "kubabb <kubarogoz3@gmail.com>",
+  "repository": "github:kubabb/Planora",
+  "keywords": ["planora", "dashboard", "mindmap", "mermaid", "react"],
+  "engines": { "node": ">=20" },
+  "publishConfig": { "access": "public" },
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.html",
   "files": [
     "dist"
   ],
@@ -12,10 +17,11 @@
     "build": "tsc --noEmit && vite build .",
     "dev": "vite . --host 127.0.0.1 --port 4173",
     "preview": "vite preview . --host 127.0.0.1 --port 4173",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.html"
   },
   "dependencies": {
     "markmap-lib": "^0.18.12",
