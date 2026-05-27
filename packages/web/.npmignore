@@ -1,0 +1,12 @@
+# npm publish: tylko skompilowane pliki dist/
+# .gitignore blokuje dist/, .npmignore NIE
+
+src/
+tests/
+tsconfig.json
+tsconfig.tsbuildinfo
+node_modules/
+.env
+*.log
+index.html
+vite.config.ts

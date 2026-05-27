@@ -22,6 +22,8 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.env.*
+!.env.example
 
 # DB
 *.db
@@ -32,12 +34,20 @@ Thumbs.db
 .hermes/
 ~/.hermes/
 
-# Planora local
-.planora/hermes-config.json
+# Planora local — NIGDY nie commitować config z kluczami API
+.planora/
+~/.planora/
+**/.planora/
+qdrant-config.json
+config.json
+planora.local.json
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Coverage
 coverage/

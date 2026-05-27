@@ -11,6 +11,92 @@ export interface AgentToolDef {
   execute(args: Record<string, unknown>): Promise<string>;
 }
 
+// ─── Security: Shell validation ──────────────────────
+
+/** Komendy dozwolone w shell tool. Wszystko inne = blokada. */
+const ALLOWED_COMMANDS = new Set([
+  'ls', 'cat', 'head', 'tail', 'wc', 'find', 'grep', 'rg',
+  'npm', 'npx', 'tsc', 'node', 'git',
+  'echo', 'mkdir', 'touch', 'cp', 'mv',
+  'sort', 'uniq', 'cut', 'tr', 'sed', 'awk',
+  'du', 'df', 'ps', 'which', 'whoami', 'pwd', 'env',
+  'dirname', 'basename', 'realpath', 'readlink',
+]);
+
+/** Wzorce NIGDY niedozwolone — blokada niezależnie od allow-listy. */
+const BLOCKED_PATTERNS: RegExp[] = [
+  /rm\s+(-rf?|--recursive|--force)/i,     // rm -rf
+  /\brm\s+\/.*/i,                           // rm /anything
+  /\brmdir\b/i,                             // rmdir
+  /sudo\b/i,                                // eskalacja
+  /\bcurl\b/i,                              // exfiltracja
+  /\bwget\b/i,                              // exfiltracja
+  />\s*\/dev\//i,                           // nadpisywanie device
+  /\|\s*(ba)?sh\b/i,                        // pipe do shella
+  /\bchmod\s+777\b/i,                       // world-writable
+  /\bchmod\s+[0-7]*7[0-7]*\b/i,            // world/group-writable
+  /\bchown\b/i,                             // zmiana właściciela
+  /\bpasswd\b/i,                            // hasła
+  /\bssh\b/i,                               // SSH
+  /\bscp\b/i,                               // SCP
+  /\bnc\b/i,                                // netcat
+  /\btelnet\b/i,                            // telnet
+  /\bftp\b/i,                               // FTP
+  /`[^`]+`/i,                               // command substitution
+  /\$\([^)]+\)/i,                           // command substitution
+  /\bkill\b/i,                              // kill process
+  /\bpkill\b/i,                             // pkill
+  /\bkillall\b/i,                           // killall
+  /\bmount\b/i,                             // mount
+  /\bumount\b/i,                            // umount
+  /\bdd\s+if=/i,                            // dd (disk destroyer)
+  /\bmkfs\b/i,                              // format
+];
+
+function validateCommand(command: string): void {
+  const trimmed = command.trim();
+  const baseCmd = trimmed.split(/\s+/)[0].split('/').pop()!; // weź ostatni człon ścieżki
+
+  if (!ALLOWED_COMMANDS.has(baseCmd)) {
+    throw new Error(`SECURITY: Komenda niedozwolona: "${baseCmd}". Dozwolone: ${[...ALLOWED_COMMANDS].slice(0, 8).join(', ')}...`);
+  }
+
+  for (const pattern of BLOCKED_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      throw new Error(`SECURITY: Niebezpieczny wzorzec w komendzie: "${trimmed}" (pasuje do ${pattern})`);
+    }
+  }
+}
+
+// ─── Security: Path traversal prevention ─────────────
+
+/** Blokuje path traversal — ścieżka nie może zawierać `..` ani być absolutna. */
+function validatePath(userPath: string): string {
+  const p = userPath.trim();
+
+  if (!p || p.length === 0) {
+    throw new Error('SECURITY: Ścieżka nie może być pusta');
+  }
+
+  // Blokuj ścieżki absolutne
+  if (path.isAbsolute(p)) {
+    throw new Error(`SECURITY: Ścieżki absolutne zablokowane: ${p}`);
+  }
+
+  // Blokuj path traversal
+  if (p.includes('..')) {
+    throw new Error(`SECURITY: Path traversal zablokowany: ${p}`);
+  }
+
+  // Blokuj symlink escapes
+  const resolved = path.resolve(p);
+  if (resolved.includes('..')) {
+    throw new Error(`SECURITY: Path traversal po resolve: ${p}`);
+  }
+
+  return p;
+}
+
 // ─── file_read ────────────────────────────────────────
 
 const fileReadTool: AgentToolDef = {
@@ -30,7 +116,8 @@ const fileReadTool: AgentToolDef = {
   },
   async execute({ path: filePath }) {
     try {
-      const content = await fs.readFile(String(filePath), 'utf-8');
+      const safePath = validatePath(String(filePath));
+      const content = await fs.readFile(safePath, 'utf-8');
       return content;
     } catch (error) {
       return `Błąd odczytu pliku: ${error instanceof Error ? error.message : String(error)}`;
@@ -58,9 +145,10 @@ const fileWriteTool: AgentToolDef = {
   },
   async execute({ path: filePath, content }) {
     try {
-      const dir = path.dirname(String(filePath));
+      const safePath = validatePath(String(filePath));
+      const dir = path.dirname(safePath);
       await fs.mkdir(dir, { recursive: true });
-      await fs.writeFile(String(filePath), String(content), 'utf-8');
+      await fs.writeFile(safePath, String(content), 'utf-8');
       return `Plik zapisany: ${filePath}`;
     } catch (error) {
       return `Błąd zapisu pliku: ${error instanceof Error ? error.message : String(error)}`;
@@ -87,7 +175,8 @@ const fileListTool: AgentToolDef = {
   },
   async execute({ directory }) {
     try {
-      const entries = await fs.readdir(String(directory), { withFileTypes: true });
+      const safeDir = validatePath(String(directory));
+      const entries = await fs.readdir(safeDir, { withFileTypes: true });
       return entries
         .map((e) => `${e.isDirectory() ? '📁' : '📄'} ${e.name}`)
         .join('\n');
@@ -118,8 +207,9 @@ const searchTool: AgentToolDef = {
   },
   async execute({ pattern, directory, fileGlob }) {
     try {
+      const safeDir = validatePath(String(directory));
       const results: string[] = [];
-      await walkAndSearch(String(directory), String(pattern), String(fileGlob || ''), results);
+      await walkAndSearch(safeDir, String(pattern), String(fileGlob || ''), results);
       return results.slice(0, 50).join('\n') || 'Nic nie znaleziono';
     } catch (error) {
       return `Błąd wyszukiwania: ${error instanceof Error ? error.message : String(error)}`;
@@ -170,6 +260,13 @@ const shellTool: AgentToolDef = {
     },
   },
   async execute({ command, workdir }) {
+    try {
+      // Security: validate command before execution
+      validateCommand(String(command));
+    } catch (error) {
+      return `Błąd bezpieczeństwa: ${error instanceof Error ? error.message : String(error)}`;
+    }
+
     return new Promise<string>((resolve) => {
       const opts = { cwd: String(workdir || '.'), timeout: 30000, maxBuffer: 8 * 1024 * 1024 };
       exec(String(command), opts, (error, stdout, stderr) => {
