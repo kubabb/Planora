@@ -1,6 +1,6 @@
 {
   "name": "planora-web",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Planora web dashboard — React app with mind maps and architecture diagrams",
   "license": "MIT",
   "author": "kubabb <kubarogoz3@gmail.com>",
