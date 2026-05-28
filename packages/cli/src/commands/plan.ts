@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as readline from 'node:readline';
 import {
   loadConfig,
   getActiveProvider,
@@ -27,16 +28,68 @@ export const planCommand = new Command('plan')
   .option('-o, --output <dir>', 'Output directory', '.')
   .option('--ai', 'Use AI agent to generate plan')
   .action(async (options) => {
-    const name = options.name || 'my-project';
-    const description = options.description || 'A new project';
-    const stack = options.stack || 'TypeScript, Node.js';
-    const timeline = options.timeline || 'not specified';
-    const outputDir = options.output || '.';
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const ask = (q: string): Promise<string> => new Promise((r) => rl.question(q, r));
+
+    // Auto-detect project from .planora/planora.json
+    let detectedName: string | undefined;
+    let detectedDescription: string | undefined;
+    let detectedStack: string | undefined;
+    let detectedTimeline: string | undefined;
+
+    const planoraJsonPath = path.join(process.cwd(), '.planora', 'planora.json');
+    if (fs.existsSync(planoraJsonPath)) {
+      try {
+        const json = JSON.parse(fs.readFileSync(planoraJsonPath, 'utf-8'));
+        detectedName = json.name;
+        detectedStack = json.stack;
+        detectedTimeline = json.timeline;
+      } catch { /* ignore */ }
+    }
+
+    let name = options.name || detectedName;
+    let description = options.description || detectedDescription;
+    let stack = options.stack || detectedStack;
+    let timeline = options.timeline || detectedTimeline;
+
+    // If not all provided, ask interactively
+    const allProvided = name && description && stack && timeline;
+
+    if (!allProvided) {
+      console.log('\n📝 Planora — generowanie planu projektu\n');
+
+      if (detectedName) {
+        console.log(`  Wykryto projekt: ${detectedName}\n`);
+      }
+
+      if (!name) {
+        name = await ask('Nazwa projektu: ');
+        if (!name.trim()) { console.log('❌ Nazwa jest wymagana.\n'); rl.close(); return; }
+      }
+
+      if (!description) {
+        description = await ask('O czym jest ten projekt? (krótki opis): ') || 'A new project';
+      }
+
+      if (!timeline) {
+        timeline = await ask('Ile masz czasu? [2 tygodnie]: ') || '2 tygodnie';
+      }
+
+      if (!stack) {
+        const def = 'TypeScript, Node.js';
+        const answer = await ask(`Stack technologiczny (oddziel przecinkami) [${def}]: `);
+        stack = answer || def;
+      }
+
+      console.log('');
+    }
+
+    rl.close();
 
     if (options.ai) {
-      await generateWithAi(name, description, stack, timeline, outputDir);
+      await generateWithAi(name!, description!, stack!, timeline!, options.output);
     } else {
-      await generateStatic(name, description, stack, timeline, outputDir);
+      await generateStatic(name!, description!, stack!, timeline!, options.output);
     }
   });
 

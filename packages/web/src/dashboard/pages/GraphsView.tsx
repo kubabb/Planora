@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import mermaid from 'mermaid';
 
@@ -7,14 +7,26 @@ mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'stric
 export function GraphsView() {
   const { id } = useParams<{ id: string }>();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [fileError, setFileError] = useState(false);
 
   useEffect(() => {
     if (!id || !containerRef.current) return;
 
     fetch(`/api/projects/${id}/file/ARCHITECTURE.md`)
-      .then((res) => res.text())
+      .then((res) => {
+        if (!res.ok) {
+          setFileError(true);
+          return '';
+        }
+        return res.text();
+      })
       .then(async (markdown) => {
+        if (!markdown) return;
         const blocks = markdown.match(/```mermaid\n([\s\S]*?)```/g) || [];
+        if (blocks.length === 0) {
+          setFileError(true);
+          return;
+        }
         const container = containerRef.current!;
         container.innerHTML = '';
 
@@ -29,16 +41,25 @@ export function GraphsView() {
           div.innerHTML = svg;
         }
       })
-      .catch(console.error);
+      .catch(() => setFileError(true));
   }, [id]);
 
   return (
     <div className="graphs-view">
       <div className="view-header">
-        <Link to={`/project/${id}`} className="back-link">← Back to Project</Link>
+        <Link to={`/project/${id}`} className="back-link">← Powrót do projektu</Link>
         <h2>Architecture Graphs</h2>
       </div>
-      <div ref={containerRef} className="mermaid-container" />
+      {fileError ? (
+        <div className="empty-state">
+          <h2>Brak diagramów</h2>
+          <p>
+            Uruchom <code>planora plan</code> lub <code>planora plan --ai</code> aby wygenerować diagramy architektury.
+          </p>
+        </div>
+      ) : (
+        <div ref={containerRef} className="mermaid-container" />
+      )}
     </div>
   );
 }

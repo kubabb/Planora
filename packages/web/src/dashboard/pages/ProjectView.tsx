@@ -18,6 +18,7 @@ export function ProjectView() {
   const [project, setProject] = useState<Project | null>(null);
   const [markdown, setMarkdown] = useState('');
   const [loading, setLoading] = useState(true);
+  const [fileError, setFileError] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -27,7 +28,13 @@ export function ProjectView() {
         setProject(data);
         return fetch(`/api/projects/${id}/file/PROJECT_PLAN.md`);
       })
-      .then((res) => res.text())
+      .then((res) => {
+        if (!res.ok) {
+          setFileError(true);
+          return '';
+        }
+        return res.text();
+      })
       .then((text) => {
         setMarkdown(text);
         setLoading(false);
@@ -36,17 +43,17 @@ export function ProjectView() {
   }, [id]);
 
   if (loading) {
-    return <div className="loading">Loading project...</div>;
+    return <div className="loading">Ładowanie projektu...</div>;
   }
 
   if (!project) {
-    return <div className="error">Project not found</div>;
+    return <div className="error">Nie znaleziono projektu</div>;
   }
 
   return (
     <div className="project-view">
       <div className="project-header">
-        <Link to="/" className="back-link">← Back to Dashboard</Link>
+        <Link to="/" className="back-link">← Powrót do dashboardu</Link>
         <h1>{project.name}</h1>
         <p>{project.description}</p>
       </div>
@@ -58,9 +65,18 @@ export function ProjectView() {
       </nav>
 
       <div className="markdown-content">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-          {markdown}
-        </ReactMarkdown>
+        {fileError ? (
+          <div className="empty-state">
+            <h2>Brak planu projektu</h2>
+            <p>
+              Uruchom <code>planora plan</code> lub <code>planora plan --ai</code> aby wygenerować plan.
+            </p>
+          </div>
+        ) : (
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+            {markdown}
+          </ReactMarkdown>
+        )}
       </div>
     </div>
   );

@@ -12,29 +12,52 @@ type Settings = {
 export function SettingsView() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          setError(true);
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
-        setSettings(data);
+        if (data) setSettings(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {
-    return <div className="loading">Loading settings...</div>;
+    return <div className="loading">Ładowanie ustawień...</div>;
   }
 
-  if (!settings) {
-    return <div className="error">Settings not available</div>;
+  if (error || !settings || !settings.provider) {
+    return (
+      <div className="settings-view">
+        <div className="view-header">
+          <Link to="/" className="back-link">← Powrót do dashboardu</Link>
+          <h1>Settings</h1>
+        </div>
+        <div className="empty-state">
+          <h2>Brak konfiguracji</h2>
+          <p>
+            Uruchom <code>planora config</code> w terminalu aby skonfigurować providera AI.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="settings-view">
       <div className="view-header">
-        <Link to="/" className="back-link">← Back to Dashboard</Link>
+        <Link to="/" className="back-link">← Powrót do dashboardu</Link>
         <h1>Settings</h1>
       </div>
 
