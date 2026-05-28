@@ -82,8 +82,9 @@ async function handleApiRequest(
       const projects = storage.listProjects();
       storage.close();
       return { status: 200, body: JSON.stringify(projects) };
-    } catch (err) {
-      return { status: 500, body: JSON.stringify({ error: 'Database error', detail: String(err) }) };
+    } catch {
+      // DB doesn't exist yet — return empty list
+      return { status: 200, body: JSON.stringify([]) };
     }
   }
 
@@ -98,8 +99,8 @@ async function handleApiRequest(
         return { status: 404, body: JSON.stringify({ error: 'Project not found' }) };
       }
       return { status: 200, body: JSON.stringify(project) };
-    } catch (err) {
-      return { status: 500, body: JSON.stringify({ error: 'Database error', detail: String(err) }) };
+    } catch {
+      return { status: 404, body: JSON.stringify({ error: 'Project not found' }) };
     }
   }
 
@@ -115,6 +116,12 @@ async function handleApiRequest(
       }
 
       const basePath = pathResolve(project.base_path);
+
+      // Check if project directory exists
+      if (!existsSync(basePath) || !statSync(basePath).isDirectory()) {
+        return { status: 404, body: JSON.stringify({ error: 'Project directory not found', path: basePath }) };
+      }
+
       const filePath = pathResolve(join(project.base_path, fileMatch[2]));
       const relativePath = relative(basePath, filePath);
 
@@ -122,13 +129,13 @@ async function handleApiRequest(
         return { status: 403, body: JSON.stringify({ error: 'Forbidden' }) };
       }
       if (!existsSync(filePath) || statSync(filePath).isDirectory()) {
-        return { status: 404, body: JSON.stringify({ error: 'File not found' }) };
+        return { status: 404, body: JSON.stringify({ error: 'File not found', file: fileMatch[2] }) };
       }
 
       const content = readFileSync(filePath, 'utf-8');
       return { status: 200, body: content, headers: { 'Content-Type': getMimeType(filePath) } };
-    } catch (err) {
-      return { status: 500, body: JSON.stringify({ error: 'File read error', detail: String(err) }) };
+    } catch {
+      return { status: 404, body: JSON.stringify({ error: 'File not found' }) };
     }
   }
 
@@ -198,7 +205,7 @@ export const webCommand = new Command('web')
             ...result.headers,
           });
           res.end(result.body);
-        } catch (err) {
+        } catch {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Server error' }));
         }
@@ -232,7 +239,6 @@ export const webCommand = new Command('web')
       console.log(`\n📊 Planora Dashboard`);
       console.log(`   Local:   http://localhost:${port}`);
       console.log(`   Network: http://0.0.0.0:${port}\n`);
-      console.log(`   Open dashboard: planora web\n`);
       console.log(`   Press Ctrl+C to stop.\n`);
     });
 

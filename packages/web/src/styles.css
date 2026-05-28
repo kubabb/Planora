@@ -1765,6 +1765,26 @@ html.snap-scroll .footer {
   color: rgba(166, 244, 255, 0.85);
 }
 
+.empty-state__steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-top: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.empty-state__steps code {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.empty-state__arrow {
+  color: var(--muted);
+  font-size: 0.85rem;
+  opacity: 0.5;
+}
+
 /* --- Loading & error --- */
 .loading,
 .error,
