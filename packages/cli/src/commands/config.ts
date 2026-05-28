@@ -9,7 +9,7 @@ import {
   redactConfig,
   validateAndTest,
   getConfigPath,
-} from '@planora/core';
+} from 'planora-core';
 
 export const configCommand = new Command('config')
   .description('Configure Planora AI provider')
@@ -121,6 +121,7 @@ async function runWizard(): Promise<void> {
   // Save config
   const config = loadConfig();
   const updated = upsertProvider(config, 'default', {
+    provider: provider as 'openrouter' | 'openai' | 'ollama' | 'opencode',
     apiKey,
     model,
     baseUrl,
@@ -131,6 +132,10 @@ async function runWizard(): Promise<void> {
   saveConfig(updated);
   console.log(`\n  ✓ Konfiguracja zapisana w ${getConfigPath()}`);
   console.log(`    Uprawnienia: 600 (tylko Ty masz dostęp)\n`);
+  if (provider === 'openrouter' && model.includes(':free')) {
+    console.log('  Uwaga: darmowe modele OpenRouter często nie obsługują tool-calling.');
+    console.log('  Jeśli plan --ai zwraca błąd, wybierz model z tool support, np. openai/gpt-4o-mini.\n');
+  }
 
   // Step 5: Test connection
   const testChoice = await ask('Sprawdzić połączenie? (Y/n) [Y]: ');

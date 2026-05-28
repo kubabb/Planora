@@ -1,10 +1,13 @@
 {
-  "name": "@planora/runner",
-  "version": "0.1.0",
+  "name": "planora-runner",
+  "version": "0.1.2",
   "description": "Planora agent engine — AI agent runtime with prompts, tools, and workflows",
   "license": "MIT",
   "author": "kubabb <kubarogoz3@gmail.com>",
-  "repository": "github:kubabb/Planora",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kubabb/Planora.git"
+  },
   "keywords": ["planora", "ai-agent", "tool-calling", "workflow", "cli"],
   "engines": { "node": ">=20" },
   "publishConfig": { "access": "public" },
@@ -23,7 +26,7 @@
     ".": "./dist/index.js"
   },
   "dependencies": {
-    "@planora/core": "^0.1.0"
+    "planora-core": "^0.1.2"
   },
   "devDependencies": {
     "typescript": "^5.4"

@@ -1,7 +1,7 @@
 // planora code — implement feature via agent
 
 import { Command } from 'commander';
-import { CODER_SYSTEM_PROMPT_PL } from '@planora/runner';
+import { CODER_SYSTEM_PROMPT_PL } from 'planora-runner';
 import { prepareAgent, saveRun, displayResult, parseFiles } from './helpers.js';
 
 export const codeCommand = new Command('code')

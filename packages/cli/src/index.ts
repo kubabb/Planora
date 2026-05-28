@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // planora CLI — main entry point
 import { Command } from 'commander';
+import { createRequire } from 'node:module';
 import { configCommand } from './commands/config.js';
 import { agentCommand } from './commands/agent.js';
 import { planCommand } from './commands/plan.js';
@@ -13,11 +14,13 @@ import { codeCommand } from './commands/code.js';
 import { reviewCommand } from './commands/review.js';
 
 const program = new Command();
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json') as { version: string };
 
 program
   .name('planora')
   .description('AI-powered project planning tool')
-  .version('0.1.0');
+  .version(pkg.version);
 
 program.addCommand(configCommand);
 program.addCommand(agentCommand);

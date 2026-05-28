@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import * as fs from 'node:fs';
-import { mindmapGenerator } from '@planora/core';
+import { mindmapGenerator } from 'planora-core';
 
 export const mindmapCommand = new Command('mindmap')
   .description('Generate MINDMAP.md')

@@ -11,7 +11,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@planora/core': resolve(__dirname, '../core/src/index.ts'),
+      'planora-core': resolve(__dirname, '../core/src/index.ts'),
     },
   },
 });

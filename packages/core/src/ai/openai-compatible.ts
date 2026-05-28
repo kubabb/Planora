@@ -164,7 +164,7 @@ export abstract class OpenAICompatibleClient implements AiClient {
   ) {
     const body: Record<string, unknown> = {
       model: overrides?.model ?? this.config.model,
-      messages,
+      messages: this.formatMessages(messages),
       temperature: overrides?.temperature ?? this.config.temperature ?? 0.7,
       max_tokens: overrides?.maxTokens ?? this.config.maxTokens ?? 4096,
     };
@@ -180,15 +180,36 @@ export abstract class OpenAICompatibleClient implements AiClient {
     if (!choice) throw new InvalidResponseError('No choices in response', this.config.provider);
 
     const message = choice.message as Record<string, unknown>;
-    const usage = data.usage as AiUsage;
+    const usage = data.usage as (AiUsage & {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    }) | undefined;
 
     return {
       content: (message?.content as string) ?? '',
       toolCalls: message?.tool_calls as AiResponse['toolCalls'],
-      usage: usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      usage: usage ? {
+        promptTokens: usage.prompt_tokens ?? usage.promptTokens ?? 0,
+        completionTokens: usage.completion_tokens ?? usage.completionTokens ?? 0,
+        totalTokens: usage.total_tokens ?? usage.totalTokens ?? 0,
+      } : { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       model: (data.model as string) ?? this.config.model,
       finishReason: (choice.finish_reason as AiResponse['finishReason']) ?? 'stop',
     };
+  }
+
+  protected formatMessages(messages: AiMessage[]) {
+    return messages.map((message) => {
+      const formatted: Record<string, unknown> = {
+        role: message.role,
+        content: message.content,
+      };
+      if (message.name) formatted.name = message.name;
+      if (message.toolCalls?.length) formatted.tool_calls = message.toolCalls;
+      if (message.toolCallId) formatted.tool_call_id = message.toolCallId;
+      return formatted;
+    });
   }
 
   protected formatTool(tool: AiTool) {
@@ -263,7 +284,15 @@ export abstract class OpenAICompatibleClient implements AiClient {
       body = await res.json() as Record<string, unknown>;
     } catch { /* ignore parse errors */ }
 
-    const message = (body.error as Record<string, string>)?.message ?? res.statusText;
+    const error = body.error as Record<string, unknown> | undefined;
+    const metadata = error?.metadata as Record<string, unknown> | undefined;
+    const message = [
+      (error?.message as string | undefined) ?? res.statusText,
+      error?.code ? `code=${String(error.code)}` : '',
+      error?.type ? `type=${String(error.type)}` : '',
+      metadata?.raw ? `raw=${String(metadata.raw).slice(0, 500)}` : '',
+      metadata?.provider_name ? `provider=${String(metadata.provider_name)}` : '',
+    ].filter(Boolean).join(' ');
 
     switch (res.status) {
       case 401:

@@ -1,18 +1,32 @@
 {
-  "name": "@planora/cli",
-  "version": "0.1.0",
+  "name": "planora",
+  "version": "0.1.5",
   "description": "Planora CLI — AI-powered project planning, mind maps, and architecture diagrams",
   "license": "MIT",
   "author": "kubabb <kubarogoz3@gmail.com>",
-  "repository": "github:kubabb/Planora",
-  "keywords": ["planora", "cli", "project-planning", "ai", "mermaid", "mindmap"],
-  "engines": { "node": ">=20" },
-  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kubabb/Planora.git"
+  },
+  "keywords": [
+    "planora",
+    "cli",
+    "project-planning",
+    "ai",
+    "mermaid",
+    "mindmap"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "planora": "./dist/index.js"
+    "planora": "dist/index.js"
   },
   "files": [
     "dist"
@@ -26,9 +40,9 @@
     ".": "./dist/index.js"
   },
   "dependencies": {
-    "@planora/core": "^0.1.0",
-    "@planora/runner": "^0.1.0",
-    "@planora/web": "^0.1.0",
+    "planora-core": "^0.1.2",
+    "planora-runner": "^0.1.2",
+    "planora-web": "^0.1.2",
     "commander": "^12.0.0"
   },
   "devDependencies": {

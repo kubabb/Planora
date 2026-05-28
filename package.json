@@ -5,9 +5,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b && npm run build --workspace @planora/web",
+    "build": "tsc -b && npm run build --workspace planora-web",
     "build:ts": "tsc -b",
-    "build:web": "npm run build --workspace @planora/web",
+    "build:web": "npm run build --workspace planora-web",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -8,7 +8,7 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, extname, relative, resolve as pathResolve } from 'node:path';
 import { homedir } from 'node:os';
 import { createRequire } from 'node:module';
-import { SqliteStorage, maskApiKey } from '@planora/core';
+import { SqliteStorage, maskApiKey } from 'planora-core';
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
@@ -37,11 +37,11 @@ function getMimeType(filePath: string): string {
 function resolveWebDist(): string {
   try {
     const require = createRequire(import.meta.url);
-    const pkgJson = require.resolve('@planora/web/package.json');
+    const pkgJson = require.resolve('planora-web/package.json');
     return join(dirname(pkgJson), 'dist');
   } catch {
     // Dev fallback from packages/cli/dist/commands/web.js -> ../../../web/dist
-    return join(import.meta.dirname, '..', '..', '..', 'web', 'dist');
+    return join(import.meta.dirname, '..', '..', '..', 'planora-web', 'dist');
   }
 }
 
@@ -173,7 +173,7 @@ export const webCommand = new Command('web')
       console.error(`\n❌ Error: Web app not built yet.`);
       console.error(`   Expected dist directory: ${distDir}`);
       console.error(`\n   To fix this, run:`);
-      console.error(`   $ npm run build --workspace @planora/web\n`);
+      console.error(`   $ npm run build --workspace planora-web\n`);
       process.exit(1);
     }
 
@@ -206,7 +206,14 @@ export const webCommand = new Command('web')
       }
 
       // Static files
-      const filePath = join(distDir, pathname === '/' ? 'dashboard.html' : pathname);
+      const filePath = pathResolve(join(distDir, pathname === '/' ? 'dashboard.html' : pathname));
+      const relativePath = relative(pathResolve(distDir), filePath);
+
+      if (relativePath.startsWith('..') || pathResolve(relativePath) === relativePath) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Forbidden' }));
+        return;
+      }
 
       if (existsSync(filePath) && statSync(filePath).isFile()) {
         const content = readFileSync(filePath);

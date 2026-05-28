@@ -1,7 +1,7 @@
 // Agent tool definitions — function-calling tools for Planora agent
 // Each tool has: name, description, JSON Schema parameters, and execute()
 
-import type { AiTool } from '@planora/core';
+import type { AiTool } from 'planora-core';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { exec } from 'node:child_process';
@@ -25,6 +25,8 @@ const ALLOWED_COMMANDS = new Set([
 
 /** Wzorce NIGDY niedozwolone — blokada niezależnie od allow-listy. */
 const BLOCKED_PATTERNS: RegExp[] = [
+  /[;&|]/,                                  // command chaining / pipes
+  /[\r\n]/,                                 // multi-line shell input
   /rm\s+(-rf?|--recursive|--force)/i,     // rm -rf
   /\brm\s+\/.*/i,                           // rm /anything
   /\brmdir\b/i,                             // rmdir

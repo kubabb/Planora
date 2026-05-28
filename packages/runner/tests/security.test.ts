@@ -7,7 +7,7 @@ import {
   BLOCKED_PATTERNS,
   validatePath,
 } from '../src/tools/index.js';
-import { maskApiKey, redactConfig } from '@planora/core';
+import { maskApiKey, redactConfig } from 'planora-core';
 
 // ─── Shell: allow-lista ────────────────────────────
 
@@ -66,6 +66,10 @@ describe('validateCommand — blokowane komendy', () => {
     // Pipe abuse
     { cmd: 'echo foo | bash', reason: 'pipe do bash' },
     { cmd: 'echo foo | sh', reason: 'pipe do sh' },
+    { cmd: 'echo ok; rm file.txt', reason: 'separator ;' },
+    { cmd: 'echo ok && rm file.txt', reason: 'separator &&' },
+    { cmd: 'echo ok || rm file.txt', reason: 'separator ||' },
+    { cmd: 'echo ok\nrm file.txt', reason: 'newline chaining' },
 
     // Destrukcyjne
     { cmd: 'rm -rf node_modules', reason: 'rm -rf' },

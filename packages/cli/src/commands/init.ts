@@ -10,13 +10,14 @@ import {
   getActiveProvider,
   getConfigPath,
   SqliteStorage,
-} from '@planora/core';
+} from 'planora-core';
 
 export const initCommand = new Command('init')
   .description('Initialize a new Planora project')
   .option('-n, --name <name>', 'Project name')
   .option('-d, --description <desc>', 'Project description')
   .option('-s, --stack <items>', 'Tech stack (comma separated)')
+  .option('-t, --timeline <time>', 'Available time, e.g. "2 weeks", "3 months"')
   .action(async (options) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const ask = (q: string): Promise<string> => new Promise((r) => rl.question(q, r));
@@ -24,8 +25,9 @@ export const initCommand = new Command('init')
     let name = options.name;
     let description = options.description;
     let stack = options.stack;
+    let timeline = options.timeline;
 
-    if (!name || !description || !stack) {
+    if (!name || !description || !stack || !timeline) {
       console.log('\n📦 Planora — inicjalizacja nowego projektu\n');
 
       if (!name) {
@@ -37,9 +39,14 @@ export const initCommand = new Command('init')
         description = await ask('Opis (krótki): ') || 'A new project';
       }
 
+      if (!timeline) {
+        timeline = await ask('Ile masz czasu na stworzenie projektu? [2 tygodnie]: ') || '2 tygodnie';
+      }
+
       if (!stack) {
         const def = 'TypeScript, Node.js';
-        stack = await ask(`Stack technologiczny (oddziel przecinkami) [${def}]: `) || def;
+        const answer = await ask(`Stack technologiczny (oddziel przecinkami; wpisz "nie wiem" dla sugestii) [${def}]: `);
+        stack = shouldRecommendStack(answer) ? await recommendStack(ask) : (answer || def);
       }
     }
 
@@ -61,6 +68,7 @@ export const initCommand = new Command('init')
       projectId,
       projectName: name!,
       stack: stack!,
+      timeline: timeline!,
       files: [],
     });
     fs.writeFileSync(path.join(projectDir, '.planora', 'planora.json'), jsonContent, 'utf-8');
@@ -77,7 +85,7 @@ export const initCommand = new Command('init')
         name: name!,
         description: description!,
         userId: 'local',
-        stack: stack!,
+        stack: JSON.stringify({ stack, timeline }),
         basePath: projectDir,
       });
       storage.close();
@@ -88,6 +96,7 @@ export const initCommand = new Command('init')
     console.log(`\n✓ Projekt "${name}" utworzony w ${projectDir}/\n`);
     console.log(`  ID:      ${projectId}`);
     console.log(`  Stack:   ${stack}`);
+    console.log(`  Czas:    ${timeline}`);
     console.log(`  Config:  .planora/planora.json\n`);
 
     // Check if AI is configured
@@ -104,3 +113,22 @@ export const initCommand = new Command('init')
       console.log(`  Następny krok: planora plan\n`);
     }
   });
+
+function shouldRecommendStack(value: string | undefined): boolean {
+  const normalized = (value || '').trim().toLowerCase();
+  return ['nie wiem', 'niewiem', 'nie wiem jeszcze', 'idk', "don't know", 'help', '?'].includes(normalized);
+}
+
+async function recommendStack(ask: (q: string) => Promise<string>): Promise<string> {
+  const web = (await ask('Czy to ma być webówka/aplikacja w przeglądarce? (Y/n) [Y]: ') || 'Y').toLowerCase() !== 'n';
+  const api = (await ask('Czy potrzebujesz backend/API? (Y/n) [Y]: ') || 'Y').toLowerCase() !== 'n';
+  const db = (await ask('Czy projekt ma zapisywać dane użytkowników? (Y/n) [Y]: ') || 'Y').toLowerCase() !== 'n';
+  const mobile = (await ask('Czy potrzebujesz mobile app? (y/N) [N]: ') || 'N').toLowerCase() === 'y';
+
+  if (mobile) return 'TypeScript, React Native, Expo, SQLite/Supabase';
+  if (web && api && db) return 'TypeScript, Next.js, Node.js, PostgreSQL, Prisma';
+  if (web && api) return 'TypeScript, React, Node.js, SQLite';
+  if (web) return 'TypeScript, React, Vite';
+  if (api && db) return 'TypeScript, Node.js, PostgreSQL, Prisma';
+  return 'TypeScript, Node.js';
+}

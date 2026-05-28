@@ -54,7 +54,7 @@ export async function validateAndTest(config: PlanoraConfig): Promise<ConfigVali
   }
 
   const aiConfig: AiConfig = {
-    provider: 'openrouter', // will be auto-detected
+    provider: provider.provider ?? 'openrouter',
     apiKey: provider.apiKey,
     model: provider.model,
     baseUrl: provider.baseUrl,
@@ -66,6 +66,31 @@ export async function validateAndTest(config: PlanoraConfig): Promise<ConfigVali
   try {
     const client: AiClient = createAiClient(aiConfig);
     const test = await client.testConnection();
+    if (test.ok) {
+      try {
+        await client.generateWithTools(
+          [{ role: 'user', content: 'Return "ok". Do not call tools.' }],
+          [{
+            type: 'function',
+            function: {
+              name: 'planora_probe',
+              description: 'No-op capability probe',
+              parameters: {
+                type: 'object',
+                properties: {
+                  ok: { type: 'boolean', description: 'Probe flag' },
+                },
+                required: ['ok'],
+              },
+            },
+          }],
+          { maxTokens: 8 },
+        );
+      } catch (error) {
+        test.ok = false;
+        test.error = `Model/provider connected, but tool-calling failed: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    }
     result.connectionTest = test;
     if (!test.ok) {
       result.errors.push(`Connection failed: ${test.error}`);

@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import * as fs from 'node:fs';
-import { roadmapGenerator } from '@planora/core';
+import { roadmapGenerator } from 'planora-core';
 
 export const roadmapCommand = new Command('roadmap')
   .description('Generate ROADMAP.md')

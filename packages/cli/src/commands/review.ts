@@ -1,7 +1,7 @@
 // planora review — review code via AI agent
 
 import { Command } from 'commander';
-import { REVIEWER_SYSTEM_PROMPT_PL } from '@planora/runner';
+import { REVIEWER_SYSTEM_PROMPT_PL } from 'planora-runner';
 import { prepareAgent, saveRun, displayResult, parseFiles } from './helpers.js';
 
 export const reviewCommand = new Command('review')

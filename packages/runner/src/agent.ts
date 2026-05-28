@@ -1,19 +1,20 @@
 // PlanoraAgent — main agent loop (think → act → observe)
 // Uses AiClient for LLM calls, manages sessions and tools.
 
-import type { AiClient } from '@planora/core';
-import { QdrantMemory } from '@planora/core';
+import type { AiClient } from 'planora-core';
+import { QdrantMemory } from 'planora-core';
 import { AgentSession } from './session.js';
 import type { AgentConfig } from './config.js';
 import { DEFAULT_AGENT_CONFIG } from './config.js';
 import { getTool, getToolSchemas } from './tools/index.js';
-import type { AgentRun, AgentRunStatus } from '@planora/core';
+import type { AgentRun, AgentRunStatus } from 'planora-core';
 import { generateId } from './utils.js';
 
 export interface WorkflowInput {
   projectName: string;
   projectDescription: string;
   stack: string[];
+  timeline?: string;
   outputDir: string;
 }
 
@@ -115,7 +116,7 @@ export class PlanoraAgent {
           : await this.client.generate(session.getContextWindow());
 
         // 2. Process response
-        if (response.content) {
+        if (response.content || response.toolCalls?.length) {
           session.addAssistant(response.content, response.toolCalls);
         }
         session.tokensUsed += response.usage?.totalTokens ?? 0;
@@ -184,8 +185,11 @@ export class PlanoraAgent {
 **Nazwa:** ${input.projectName}
 **Opis:** ${input.projectDescription}
 **Stack:** ${input.stack.join(', ')}
+**Dostępny czas:** ${input.timeline || 'nie podano'}
 
 Wygeneruj wszystkie pliki i zapisz je w katalogu: ${input.outputDir}
+
+Plan musi realistycznie mieścić się w dostępnym czasie. Jeśli stack wygląda jak sugestia albo user nie był pewien stacku, uzasadnij wybór technologii i zaproponuj prostszą alternatywę.
 
 Po wygenerowaniu każdego pliku użyj narzędzia file_write aby go zapisać.`;
   }

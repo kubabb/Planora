@@ -5,6 +5,7 @@ import type { Generator } from './types.js';
 export interface RoadmapInput {
   projectName: string;
   phases?: number;
+  timeline?: string;
 }
 
 export const roadmapGenerator: Generator<RoadmapInput> = {
@@ -13,7 +14,11 @@ export const roadmapGenerator: Generator<RoadmapInput> = {
     const phaseNames = ['Foundation', 'Core Development', 'Advanced Features', 'Polish & Launch'];
 
     let md = `# ${input.projectName} — Roadmap\n\n`;
-    md += `**Generated:** ${new Date().toISOString().split('T')[0]}\n\n---\n\n`;
+    md += `**Generated:** ${new Date().toISOString().split('T')[0]}\n`;
+    if (input.timeline) {
+      md += `**Available Time:** ${input.timeline}\n`;
+    }
+    md += `\n---\n\n`;
 
     for (let i = 0; i < phases; i++) {
       const q = `Q${i + 1}`;

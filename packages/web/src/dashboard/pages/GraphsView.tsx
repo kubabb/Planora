@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import mermaid from 'mermaid';
 
-mermaid.initialize({ startOnLoad: false, theme: 'default' });
+mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
 
 export function GraphsView() {
   const { id } = useParams<{ id: string }>();

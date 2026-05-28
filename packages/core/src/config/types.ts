@@ -9,6 +9,7 @@ export interface PlanoraConfig {
 }
 
 export interface ProviderConfig {
+  provider?: AiProvider;
   apiKey: string;
   model: string;
   baseUrl?: string;

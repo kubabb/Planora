@@ -6,6 +6,7 @@ export interface ProjectPlanInput {
   projectName: string;
   description: string;
   stack: string;
+  timeline?: string;
   author?: string;
 }
 
@@ -20,6 +21,7 @@ ${input.description}
 
 **Author:** ${input.author || 'Planora'}
 **Generated:** ${new Date().toISOString().split('T')[0]}
+**Available Time:** ${input.timeline || 'Not specified'}
 
 ---
 
@@ -47,6 +49,8 @@ ${stackList.map((s) => `| ${s.trim()} | — |`).join('\n')}
 ---
 
 ## Milestones
+
+Timeline should fit: **${input.timeline || 'not specified'}**.
 
 ### M1: Foundation (Week 1-2)
 - Project setup

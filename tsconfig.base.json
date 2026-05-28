@@ -10,7 +10,13 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "composite": true
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "planora-core": ["packages/core/src/index.ts"],
+      "planora-runner": ["packages/runner/src/index.ts"],
+      "planora-web/*": ["packages/web/*"]
+    }
   },
   "exclude": ["node_modules", "dist"]
 }

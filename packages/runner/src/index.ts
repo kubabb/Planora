@@ -1,4 +1,4 @@
-// @planora/runner — Planora Agent Engine barrel
+// planora-runner — Planora Agent Engine barrel
 
 export { PlanoraAgent } from './agent.js';
 export type { WorkflowInput, WorkflowOutput, CodeInput, ReviewInput } from './agent.js';

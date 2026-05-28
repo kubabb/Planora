@@ -1,10 +1,13 @@
 {
-  "name": "@planora/core",
-  "version": "0.1.0",
+  "name": "planora-core",
+  "version": "0.1.2",
   "description": "Planora core — models, generators, storage, AI client, analyzers",
   "license": "MIT",
   "author": "kubabb <kubarogoz3@gmail.com>",
-  "repository": "github:kubabb/Planora",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kubabb/Planora.git"
+  },
   "keywords": ["planora", "project-planning", "ai", "cli", "mermaid", "mindmap"],
   "engines": { "node": ">=20" },
   "publishConfig": { "access": "public" },

@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import * as path from 'node:path';
-import { analyzeRepo, recommendStack, recommendFromExisting } from '@planora/core';
+import { analyzeRepo, recommendStack, recommendFromExisting } from 'planora-core';
 
 export const analyzeCommand = new Command('analyze')
   .description('Analyze existing repository and suggest improvements')

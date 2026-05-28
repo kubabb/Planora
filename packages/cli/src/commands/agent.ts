@@ -5,7 +5,7 @@ import {
   loadConfig,
   redactConfig,
   SqliteStorage,
-} from '@planora/core';
+} from 'planora-core';
 
 export const agentCommand = new Command('agent')
   .description('Agent status and history')

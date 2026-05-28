@@ -1,7 +1,7 @@
 // memory tools — Qdrant-based semantic memory for the agent
 
 import type { AgentToolDef } from './index.js';
-import { QdrantMemory } from '@planora/core';
+import { QdrantMemory } from 'planora-core';
 
 // Singleton — initialized on first use
 let memory: QdrantMemory | null = null;

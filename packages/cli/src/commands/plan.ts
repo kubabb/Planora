@@ -14,8 +14,8 @@ import {
   agentSetupGenerator,
   planoraJsonGenerator,
   SqliteStorage,
-} from '@planora/core';
-import { PlanoraAgent, plannerSystemPrompt } from '@planora/runner';
+} from 'planora-core';
+import { PlanoraAgent, plannerSystemPrompt } from 'planora-runner';
 import { saveRun, displayResult } from './helpers.js';
 
 export const planCommand = new Command('plan')
@@ -23,18 +23,20 @@ export const planCommand = new Command('plan')
   .option('-n, --name <name>', 'Project name')
   .option('-d, --description <desc>', 'Project description')
   .option('-s, --stack <items>', 'Tech stack (comma separated)')
+  .option('-t, --timeline <time>', 'Available time, e.g. "2 weeks", "3 months"')
   .option('-o, --output <dir>', 'Output directory', '.')
   .option('--ai', 'Use AI agent to generate plan')
   .action(async (options) => {
     const name = options.name || 'my-project';
     const description = options.description || 'A new project';
     const stack = options.stack || 'TypeScript, Node.js';
+    const timeline = options.timeline || 'not specified';
     const outputDir = options.output || '.';
 
     if (options.ai) {
-      await generateWithAi(name, description, stack, outputDir);
+      await generateWithAi(name, description, stack, timeline, outputDir);
     } else {
-      await generateStatic(name, description, stack, outputDir);
+      await generateStatic(name, description, stack, timeline, outputDir);
     }
   });
 
@@ -42,6 +44,7 @@ async function generateStatic(
   name: string,
   description: string,
   stack: string,
+  timeline: string,
   outputDir: string,
 ): Promise<void> {
   console.log(`\n📝 Generowanie planu dla "${name}" (szablony statyczne)...\n`);
@@ -66,8 +69,8 @@ async function generateStatic(
   }
 
   const files: [string, string][] = [
-    ['PROJECT_PLAN.md', projectPlanGenerator.generate({ projectName: name, description, stack })],
-    ['ROADMAP.md', roadmapGenerator.generate({ projectName: name })],
+    ['PROJECT_PLAN.md', projectPlanGenerator.generate({ projectName: name, description, stack, timeline })],
+    ['ROADMAP.md', roadmapGenerator.generate({ projectName: name, timeline })],
     ['MINDMAP.md', mindmapGenerator.generate({ projectName: name, description, stack })],
     ['ARCHITECTURE.md', architectureGenerator.generate({ projectName: name, description, stack })],
     ['AGENT_SETUP.md', agentSetupGenerator.generate({ projectName: name, provider: 'not configured', model: 'not configured' })],
@@ -79,7 +82,7 @@ async function generateStatic(
   }
 
   const planoraJson = planoraJsonGenerator.generate({
-    projectId, projectName: name, stack, files: files.map(([f]) => f),
+    projectId, projectName: name, stack, timeline, files: files.map(([f]) => f),
   });
   fs.writeFileSync(path.join(projectDir, 'planora.json'), planoraJson, 'utf-8');
   console.log(`  ✓ planora.json`);
@@ -92,6 +95,7 @@ async function generateWithAi(
   name: string,
   description: string,
   stack: string,
+  timeline: string,
   outputDir: string,
 ): Promise<void> {
   const config = loadConfig();
@@ -106,14 +110,14 @@ async function generateWithAi(
 
   try {
     const client = createAiClient({
-      provider: Object.keys(config.providers)[0] as 'openrouter',
+      provider: provider.provider ?? 'openrouter',
       apiKey: provider.apiKey, model: provider.model, baseUrl: provider.baseUrl,
       temperature: provider.temperature, maxTokens: provider.maxTokens,
     });
 
     const agent = new PlanoraAgent(client);
     const result = await agent.plan(
-      { projectName: name, projectDescription: description, stack: stack.split(',').map(s => s.trim()), outputDir },
+      { projectName: name, projectDescription: description, stack: stack.split(',').map(s => s.trim()), timeline, outputDir },
       plannerSystemPrompt('pl'),
     );
 
@@ -126,7 +130,7 @@ async function generateWithAi(
         const storage = new SqliteStorage();
         storage.createUser({ id: 'local', name: 'local', profile: 'local' });
         storage.createProject({
-          id: projectId, name, description, userId: 'local', stack, basePath: projectDir,
+          id: projectId, name, description, userId: 'local', stack: JSON.stringify({ stack, timeline }), basePath: projectDir,
         });
         storage.close();
       } catch { /* optional */ }

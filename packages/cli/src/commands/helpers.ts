@@ -9,9 +9,9 @@ import {
   getActiveProvider,
   createAiClient,
   SqliteStorage,
-} from '@planora/core';
-import { PlanoraAgent } from '@planora/runner';
-import type { WorkflowOutput } from '@planora/runner';
+} from 'planora-core';
+import { PlanoraAgent } from 'planora-runner';
+import type { WorkflowOutput } from 'planora-runner';
 
 interface AgentContext {
   agent: PlanoraAgent;

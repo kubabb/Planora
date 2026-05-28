@@ -1,6 +1,6 @@
 // AgentSession — manages conversation state for an agent run
 
-import type { AiMessage, AiToolCall } from '@planora/core';
+import type { AiMessage, AiToolCall } from 'planora-core';
 import type { AgentConfig } from './config.js';
 
 export class AgentSession {
