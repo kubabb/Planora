@@ -61,7 +61,7 @@ export class PlanoraAgent {
     const session = new AgentSession(workflow.projectName, generateId(), this.config);
     session.addSystem(systemPrompt);
     session.addUser(this.buildPlanUserPrompt(workflow));
-    return this.runLoop(session);
+    return this.runLoop(session, workflow.outputDir);
   }
 
   /**
@@ -74,7 +74,7 @@ export class PlanoraAgent {
     const session = new AgentSession(input.projectName, generateId(), this.config);
     session.addSystem(systemPrompt);
     session.addUser(this.buildCodeUserPrompt(input));
-    return this.runLoop(session);
+    return this.runLoop(session, input.projectDir);
   }
 
   /**
@@ -87,15 +87,15 @@ export class PlanoraAgent {
     const session = new AgentSession(input.projectName, generateId(), this.config);
     session.addSystem(systemPrompt);
     session.addUser(this.buildReviewUserPrompt(input));
-    return this.runLoop(session);
+    return this.runLoop(session, input.projectDir);
   }
 
   // ─── Core loop ────────────────────────────────────
 
-  private async runLoop(session: AgentSession): Promise<WorkflowOutput> {
+  private async runLoop(session: AgentSession, baseDir?: string): Promise<WorkflowOutput> {
     const runId = session.runId;
     let stepCount = 0;
-    const tools = getToolSchemas();
+    const tools = getToolSchemas(baseDir);
     const startTime = Date.now();
 
     try {
@@ -124,7 +124,7 @@ export class PlanoraAgent {
         // 3. Act — execute tool calls if any
         if (response.toolCalls?.length) {
           for (const call of response.toolCalls) {
-            const tool = getTool(call.function.name);
+            const tool = getTool(call.function.name, baseDir);
             if (!tool) {
               session.addToolResult(call.id, `Nieznane narzędzie: ${call.function.name}`);
               continue;
@@ -187,7 +187,7 @@ export class PlanoraAgent {
 **Stack:** ${input.stack.join(', ')}
 **Dostępny czas:** ${input.timeline || 'nie podano'}
 
-Wygeneruj wszystkie pliki i zapisz je w katalogu: ${input.outputDir}
+Wygeneruj wszystkie pliki i zapisz je używając file_write (same nazwy plików, np. "PROJECT_PLAN.md").
 
 Plan musi realistycznie mieścić się w dostępnym czasie. Jeśli stack wygląda jak sugestia albo user nie był pewien stacku, uzasadnij wybór technologii i zaproponuj prostszą alternatywę.
 

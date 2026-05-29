@@ -19,7 +19,10 @@ const PLANNER_SYSTEM_PL = `Jesteś architektem oprogramowania. Generujesz komple
 3. Zaproponuj architekturę i stack technologiczny
 4. Wygeneruj pliki planu (każdy przez file_write)
 
-## Pliki do wygenerowania (KAŻDY jako osobny plik):
+## Pliki do wygenerowania (KAŻDY jako osobny file_write z SAMĄ nazwą pliku):
+
+**WAŻNE:** Używaj TYLKO nazwy pliku (np. "PROJECT_PLAN.md"), bez żadnych prefiksów katalogowych.
+Katalog roboczy jest już ustawiony poprawnie — nie dodawaj ścieżek.
 
 ### PROJECT_PLAN.md
 - Opis projektu (1-2 akapity)
@@ -65,7 +68,10 @@ const PLANNER_SYSTEM_EN = `You are a software architect. Generate a complete pro
 3. Propose architecture and tech stack
 4. Generate plan files (each via file_write)
 
-## Files to generate (EACH as a separate file):
+## Files to generate (EACH as a separate file_write with JUST the filename):
+
+**IMPORTANT:** Use ONLY the filename (e.g. "PROJECT_PLAN.md"), no directory prefixes.
+The working directory is already set correctly — do not add paths.
 
 ### PROJECT_PLAN.md
 - Project overview (1-2 paragraphs)
