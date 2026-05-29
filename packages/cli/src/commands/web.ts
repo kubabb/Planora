@@ -5,7 +5,7 @@ import { Command } from 'commander';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { join, dirname, extname, relative, resolve as pathResolve } from 'node:path';
+import { join, dirname, extname, relative, resolve as pathResolve, isAbsolute } from 'node:path';
 import { homedir } from 'node:os';
 import { createRequire } from 'node:module';
 import { SqliteStorage, maskApiKey } from 'planora-core';
@@ -104,38 +104,74 @@ async function handleApiRequest(
     }
   }
 
+  // /api/projects/:id/files — diagnostic endpoint
+  const filesMatch = pathname.match(/^\/api\/projects\/([^\/]+)\/files$/);
+  if (filesMatch) {
+    try {
+      const storage = new SqliteStorage();
+      const project = storage.getProject(filesMatch[1]) as { base_path: string; id: string } | null;
+      storage.close();
+      if (!project) {
+        return { status: 404, body: JSON.stringify({ error: 'Project not found' }) };
+      }
+      const basePath = pathResolve(project.base_path);
+      const expectedFiles = ['PROJECT_PLAN.md', 'ROADMAP.md', 'MINDMAP.md', 'ARCHITECTURE.md', 'AGENT_SETUP.md', '.planora/planora.json'];
+      const result = expectedFiles.map((f) => {
+        const fp = pathResolve(basePath, f);
+        return { file: f, path: fp, exists: existsSync(fp) };
+      });
+      return { status: 200, body: JSON.stringify({ projectId: project.id, basePath, files: result }) };
+    } catch {
+      return { status: 500, body: JSON.stringify({ error: 'Server error' }) };
+    }
+  }
+
   // /api/projects/:id/file/:filename
   const fileMatch = pathname.match(/^\/api\/projects\/([^\/]+)\/file\/(.+)$/);
   if (fileMatch) {
     try {
       const storage = new SqliteStorage();
-      const project = storage.getProject(fileMatch[1]) as { base_path: string } | null;
+      const project = storage.getProject(fileMatch[1]) as { base_path: string; id: string; name: string } | null;
       storage.close();
       if (!project) {
-        return { status: 404, body: JSON.stringify({ error: 'Project not found' }) };
+        return { status: 404, body: JSON.stringify({ error: 'Project not found', projectId: fileMatch[1] }) };
       }
 
       const basePath = pathResolve(project.base_path);
 
       // Check if project directory exists
       if (!existsSync(basePath) || !statSync(basePath).isDirectory()) {
-        return { status: 404, body: JSON.stringify({ error: 'Project directory not found', path: basePath }) };
+        return { status: 404, body: JSON.stringify({ error: 'Project directory not found', basePath, projectId: project.id }) };
       }
 
-      const filePath = pathResolve(join(project.base_path, fileMatch[2]));
-      const relativePath = relative(basePath, filePath);
+      // Decode URL-encoded characters BEFORE traversal check
+      const requestedFile = decodeURIComponent(fileMatch[2]);
+      const filePath = pathResolve(basePath, requestedFile);
+      const relPath = relative(basePath, filePath);
 
-      if (relativePath.startsWith('..') || pathResolve(relativePath) === relativePath) {
-        return { status: 403, body: JSON.stringify({ error: 'Forbidden' }) };
+      // Path traversal check: must stay inside basePath
+      if (relPath.startsWith('..') || isAbsolute(relPath)) {
+        return { status: 403, body: JSON.stringify({ error: 'Forbidden — path traversal detected', requestedFile }) };
       }
+
       if (!existsSync(filePath) || statSync(filePath).isDirectory()) {
-        return { status: 404, body: JSON.stringify({ error: 'File not found', file: fileMatch[2] }) };
+        return {
+          status: 404,
+          body: JSON.stringify({
+            error: 'File not found',
+            projectId: project.id,
+            basePath,
+            requestedFile,
+            resolvedPath: filePath,
+            hint: `Uruchom: planora plan -n "${project.name}" aby wygenerować pliki`,
+          }),
+        };
       }
 
       const content = readFileSync(filePath, 'utf-8');
       return { status: 200, body: content, headers: { 'Content-Type': getMimeType(filePath) } };
-    } catch {
-      return { status: 404, body: JSON.stringify({ error: 'File not found' }) };
+    } catch (err) {
+      return { status: 500, body: JSON.stringify({ error: 'Server error', message: err instanceof Error ? err.message : String(err) }) };
     }
   }
 
