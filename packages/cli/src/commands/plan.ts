@@ -17,7 +17,7 @@ import {
   SqliteStorage,
 } from 'planora-core';
 import { PlanoraAgent, plannerSystemPrompt } from 'planora-runner';
-import { saveRun, displayResult } from './helpers.js';
+import { saveRun, displayResult, detectProject } from './helpers.js';
 
 export const planCommand = new Command('plan')
   .description('Generate project plan files')
@@ -28,38 +28,32 @@ export const planCommand = new Command('plan')
   .option('-o, --output <dir>', 'Output directory', '.')
   .option('--ai', 'Use AI agent to generate plan')
   .action(async (options) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const ask = (q: string): Promise<string> => new Promise((r) => rl.question(q, r));
+    // Detect project context
+    const ctx = detectProject({ name: options.name, output: options.output });
 
-    // Auto-detect project from .planora/planora.json
-    let detectedName: string | undefined;
-    let detectedDescription: string | undefined;
-    let detectedStack: string | undefined;
-    let detectedTimeline: string | undefined;
-
-    const planoraJsonPath = path.join(process.cwd(), '.planora', 'planora.json');
-    if (fs.existsSync(planoraJsonPath)) {
-      try {
-        const json = JSON.parse(fs.readFileSync(planoraJsonPath, 'utf-8'));
-        detectedName = json.name;
-        detectedStack = json.stack;
-        detectedTimeline = json.timeline;
-      } catch { /* ignore */ }
-    }
-
-    let name = options.name || detectedName;
-    let description = options.description || detectedDescription;
-    let stack = options.stack || detectedStack;
-    let timeline = options.timeline || detectedTimeline;
+    let name = ctx.name;
+    let description = options.description || ctx.description;
+    let stack = options.stack || ctx.stack;
+    let timeline = options.timeline || ctx.timeline;
 
     // If not all provided, ask interactively
     const allProvided = name && description && stack && timeline;
 
     if (!allProvided) {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const ask = (q: string): Promise<string> => new Promise((r) => rl.question(q, r));
+
       console.log('\n📝 Planora — generowanie planu projektu\n');
 
-      if (detectedName) {
-        console.log(`  Wykryto projekt: ${detectedName}\n`);
+      if (ctx.exists && ctx.name) {
+        console.log(`  Wykryto projekt: ${ctx.name}`);
+        console.log(`  Katalog: ${ctx.projectDir}`);
+        const missing: string[] = [];
+        if (!description) missing.push('opis');
+        if (!stack) missing.push('stack');
+        if (!timeline) missing.push('timeline');
+        if (missing.length > 0) console.log(`  Brakuje: ${missing.join(', ')}`);
+        console.log('');
       }
 
       if (!name) {
@@ -82,14 +76,16 @@ export const planCommand = new Command('plan')
       }
 
       console.log('');
+      rl.close();
     }
 
-    rl.close();
+    // Ensure projectDir is absolute
+    const projectDir = path.resolve(ctx.projectDir);
 
     if (options.ai) {
-      await generateWithAi(name!, description!, stack!, timeline!, options.output);
+      await generateWithAi(name!, description!, stack!, timeline!, projectDir);
     } else {
-      await generateStatic(name!, description!, stack!, timeline!, options.output);
+      await generateStatic(name!, description!, stack!, timeline!, projectDir);
     }
   });
 
@@ -98,29 +94,39 @@ async function generateStatic(
   description: string,
   stack: string,
   timeline: string,
-  outputDir: string,
+  projectDir: string,
 ): Promise<void> {
   console.log(`\n📝 Generowanie planu dla "${name}" (szablony statyczne)...\n`);
 
   const projectId = crypto.randomUUID();
-  const projectDir = path.join(outputDir, name);
 
-  // Auto-init if directory doesn't exist
-  if (!fs.existsSync(projectDir)) {
-    fs.mkdirSync(projectDir, { recursive: true });
-    fs.mkdirSync(path.join(projectDir, '.planora'), { recursive: true });
+  // Ensure project directory and .planora exist
+  fs.mkdirSync(projectDir, { recursive: true });
+  fs.mkdirSync(path.join(projectDir, '.planora'), { recursive: true });
+
+  if (!fs.existsSync(path.join(projectDir, '.gitignore'))) {
     fs.writeFileSync(path.join(projectDir, '.gitignore'), '.planora/\nnode_modules/\ndist/\n.env\n', 'utf-8');
-
-    try {
-      const storage = new SqliteStorage();
-      storage.createUser({ id: 'local', name: 'local', profile: 'local' });
-      storage.createProject({
-        id: projectId, name, description, userId: 'local', stack, basePath: projectDir,
-      });
-      storage.close();
-    } catch { /* optional */ }
   }
 
+  // Write planora.json FIRST (in .planora/)
+  const planoraJson = planoraJsonGenerator.generate({
+    projectId, projectName: name, description, stack, timeline,
+    files: ['PROJECT_PLAN.md', 'ROADMAP.md', 'MINDMAP.md', 'ARCHITECTURE.md', 'AGENT_SETUP.md'],
+  });
+  fs.writeFileSync(path.join(projectDir, '.planora', 'planora.json'), planoraJson, 'utf-8');
+  console.log('  ✓ .planora/planora.json');
+
+  // Save to SQLite (upsert — handles re-runs)
+  try {
+    const storage = new SqliteStorage();
+    storage.createUser({ id: 'local', name: 'local', profile: 'local' });
+    storage.upsertProject({
+      id: projectId, name, description, userId: 'local', stack, basePath: projectDir,
+    });
+    storage.close();
+  } catch { /* optional */ }
+
+  // Generate plan files
   const files: [string, string][] = [
     ['PROJECT_PLAN.md', projectPlanGenerator.generate({ projectName: name, description, stack, timeline })],
     ['ROADMAP.md', roadmapGenerator.generate({ projectName: name, timeline })],
@@ -134,11 +140,6 @@ async function generateStatic(
     console.log(`  ✓ ${filename}`);
   }
 
-  const planoraJson = planoraJsonGenerator.generate({
-    projectId, projectName: name, stack, timeline, files: files.map(([f]) => f),
-  });
-  fs.writeFileSync(path.join(projectDir, 'planora.json'), planoraJson, 'utf-8');
-  console.log(`  ✓ planora.json`);
   console.log(`\n✓ Plan wygenerowany w: ${projectDir}/\n`);
   console.log(`  Otwórz dashboard: planora web\n`);
   console.log(`  Użyj --ai aby wygenerować inteligentny plan z AI:\n  planora plan -n "${name}" --ai\n`);
@@ -149,7 +150,7 @@ async function generateWithAi(
   description: string,
   stack: string,
   timeline: string,
-  outputDir: string,
+  projectDir: string,
 ): Promise<void> {
   const config = loadConfig();
   const provider = getActiveProvider(config);
@@ -159,7 +160,15 @@ async function generateWithAi(
     return;
   }
 
-  console.log(`\n🤖 Planora Agent — "${name}"\n  Model: ${provider.model}\n  Output: ${outputDir}\n⏳ Agent pracuje...\n`);
+  // Ensure project directory and .planora exist BEFORE agent runs
+  fs.mkdirSync(projectDir, { recursive: true });
+  fs.mkdirSync(path.join(projectDir, '.planora'), { recursive: true });
+
+  if (!fs.existsSync(path.join(projectDir, '.gitignore'))) {
+    fs.writeFileSync(path.join(projectDir, '.gitignore'), '.planora/\nnode_modules/\ndist/\n.env\n', 'utf-8');
+  }
+
+  console.log(`\n🤖 Planora Agent — "${name}"\n  Model: ${provider.model}\n  Katalog: ${projectDir}\n⏳ Agent pracuje...\n`);
 
   try {
     const client = createAiClient({
@@ -170,7 +179,7 @@ async function generateWithAi(
 
     const agent = new PlanoraAgent(client);
     const result = await agent.plan(
-      { projectName: name, projectDescription: description, stack: stack.split(',').map(s => s.trim()), timeline, outputDir },
+      { projectName: name, projectDescription: description, stack: stack.split(',').map(s => s.trim()), timeline, outputDir: projectDir },
       plannerSystemPrompt('pl'),
     );
 
@@ -178,12 +187,21 @@ async function generateWithAi(
 
     if (result.status === 'success') {
       const projectId = crypto.randomUUID();
-      const projectDir = path.join(outputDir, name);
+
+      // Write planora.json to .planora/
+      const planoraJson = planoraJsonGenerator.generate({
+        projectId, projectName: name, description, stack, timeline,
+        files: result.files.map((f) => path.basename(f)),
+      });
+      fs.writeFileSync(path.join(projectDir, '.planora', 'planora.json'), planoraJson, 'utf-8');
+
+      // Upsert to SQLite
       try {
         const storage = new SqliteStorage();
         storage.createUser({ id: 'local', name: 'local', profile: 'local' });
-        storage.createProject({
-          id: projectId, name, description, userId: 'local', stack: JSON.stringify({ stack, timeline }), basePath: projectDir,
+        storage.upsertProject({
+          id: projectId, name, description, userId: 'local',
+          stack: JSON.stringify({ stack, timeline }), basePath: projectDir,
         });
         storage.close();
       } catch { /* optional */ }

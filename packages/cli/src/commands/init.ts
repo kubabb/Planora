@@ -67,6 +67,7 @@ export const initCommand = new Command('init')
     const jsonContent = planoraJsonGenerator.generate({
       projectId,
       projectName: name!,
+      description: description!,
       stack: stack!,
       timeline: timeline!,
       files: [],

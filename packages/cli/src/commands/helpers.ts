@@ -13,6 +13,80 @@ import {
 import { PlanoraAgent } from 'planora-runner';
 import type { WorkflowOutput } from 'planora-runner';
 
+// ─── Project detection ──────────────────────────────
+
+export interface ProjectContext {
+  projectDir: string;
+  metadataPath: string;
+  exists: boolean;
+  name?: string;
+  description?: string;
+  stack?: string;
+  timeline?: string;
+}
+
+/**
+ * Detect project from cwd/.planora/planora.json or legacy cwd/planora.json.
+ * Auto-migrates legacy to .planora/ if found.
+ */
+export function detectProject(options: { name?: string; output?: string }): ProjectContext {
+  const cwd = process.cwd();
+  const planoraDir = path.join(cwd, '.planora');
+  const planoraJson = path.join(planoraDir, 'planora.json');
+  const legacyJson = path.join(cwd, 'planora.json');
+
+  let metadataPath = planoraJson;
+  let exists = false;
+  let name: string | undefined;
+  let description: string | undefined;
+  let stack: string | undefined;
+  let timeline: string | undefined;
+
+  if (fs.existsSync(planoraJson)) {
+    try {
+      const json = JSON.parse(fs.readFileSync(planoraJson, 'utf-8'));
+      name = json.name;
+      description = json.description;
+      stack = Array.isArray(json.stack) ? json.stack.join(', ') : json.stack;
+      timeline = json.timeline;
+      exists = true;
+    } catch { /* ignore */ }
+  } else if (fs.existsSync(legacyJson)) {
+    // Legacy location — migrate
+    try {
+      const json = JSON.parse(fs.readFileSync(legacyJson, 'utf-8'));
+      name = json.name;
+      description = json.description;
+      stack = Array.isArray(json.stack) ? json.stack.join(', ') : json.stack;
+      timeline = json.timeline;
+      exists = true;
+      // Migrate to .planora/
+      fs.mkdirSync(planoraDir, { recursive: true });
+      fs.writeFileSync(planoraJson, JSON.stringify(json, null, 2), 'utf-8');
+      console.log('  ℹ Przeniesiono planora.json do .planora/planora.json');
+    } catch { /* ignore */ }
+  }
+
+  // Override with CLI options
+  if (options.name) name = options.name;
+
+  // Determine project dir
+  let projectDir: string;
+  if (exists && !options.name) {
+    // Inside existing project, use cwd
+    projectDir = cwd;
+  } else if (options.name) {
+    // New project or explicit name
+    projectDir = path.resolve(options.output || '.', options.name);
+  } else {
+    projectDir = cwd;
+  }
+
+  return { projectDir, metadataPath, exists, name, description, stack, timeline };
+}
+
+// ─── Agent context ──────────────────────────────────
+
 interface AgentContext {
   agent: PlanoraAgent;
   projectName: string;

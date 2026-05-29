@@ -86,6 +86,20 @@ export class SqliteStorage implements StorageAdapter {
     ).run(project.id, project.name, project.description, project.userId, project.stack, project.basePath || '.');
   }
 
+  upsertProject(project: {
+    id: string;
+    name: string;
+    description: string;
+    userId: string;
+    stack: string;
+    basePath?: string;
+  }): void {
+    this.db.prepare(
+      `INSERT OR REPLACE INTO projects (id, name, description, user_id, stack, base_path, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+    ).run(project.id, project.name, project.description, project.userId, project.stack, project.basePath || '.');
+  }
+
   getProject(id: string): unknown | null {
     return this.db.prepare('SELECT * FROM projects WHERE id = ?').get(id) || null;
   }
