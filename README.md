@@ -151,6 +151,16 @@ packages/
 | Storage | SQLite local-first |
 | AI | OpenAI-compatible APIs |
 
+## Standalone Skill
+
+Planora is also available as a standalone agent skill — no installation, no CLI, no dependencies. Use it with Hermes, Codex, Claude Code, Cursor, or any agent with file access.
+
+```text
+https://github.com/kubabb/planora-skill
+```
+
+The skill generates the same planning artifacts (PROJECT_PLAN, ROADMAP, MINDMAP, ARCHITECTURE, AGENT_SETUP) as a portable set of Markdown instructions that work in any AI agent environment.
+
 ## License
 
 MIT

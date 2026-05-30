@@ -169,6 +169,19 @@ export const sections: DocSection[] = [
     ],
   },
   {
+    id: 'standalone-skill',
+    title: 'Standalone Skill',
+    body:
+      'Planora is also available as a standalone agent skill — a portable set of instructions that generates the same planning artifacts without requiring the Planora CLI, npm, or any dependency. It works with Hermes, Codex, Claude Code, Cursor, terminal agents, or models without file access.',
+    items: [
+      ['Repository', 'https://github.com/kubabb/planora-skill'],
+      ['How it works', 'Load the skill in your agent, describe the project, and it generates PROJECT_PLAN, ROADMAP, MINDMAP, ARCHITECTURE, and AGENT_SETUP as Markdown files.'],
+      ['Environments', 'Generic, Codex, Hermes, Claude Code, Cursor, Terminal, No-tools — each with a dedicated adapter.'],
+      ['No dependencies', 'The skill does not require Planora, Hermes, Node.js, or any external tool.'],
+      ['Metadata', 'Uses a neutral .planner/ directory instead of .planora/ to stay independent.'],
+    ],
+  },
+  {
     id: 'status',
     title: 'Current Status',
     body:

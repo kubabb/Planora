@@ -473,7 +473,7 @@ export function App() {
     () => [
       {
         title: 'Product',
-        links: ['Documentation', 'CLI', 'Web dashboard', 'VS Code'],
+        links: ['Documentation', 'CLI', 'Web dashboard', 'VS Code', 'Standalone Skill'],
       },
       {
         title: 'Planning',
@@ -591,6 +591,12 @@ export function App() {
               accent
               visual="chip"
             />
+            <FeatureCard
+              eyebrow="Standalone Skill"
+              title="Use with any AI agent"
+              body="Planora is available as a standalone agent skill for Hermes, Codex, Claude Code, Cursor, and more — no installation or CLI required."
+              icon="*"
+            />
           </div>
         </section>
           </>
@@ -620,7 +626,7 @@ export function App() {
             <div key={group.title} className="footer__column">
               <h2>{group.title}</h2>
               {group.links.map((label) => (
-                <a key={label} href={label === 'Documentation' ? '/documentation' : '#'}>
+                <a key={label} href={label === 'Documentation' ? '/documentation' : label === 'Standalone Skill' ? 'https://github.com/kubabb/planora-skill' : '#'}>
                   {label}
                 </a>
               ))}
